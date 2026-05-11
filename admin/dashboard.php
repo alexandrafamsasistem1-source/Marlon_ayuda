@@ -8,14 +8,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 // Verificar que sea admin
-if (!isLoggedIn()) {
-    include __DIR__ . '/../auth/login.php';
-    exit();
-}
-if (!isAdmin()) {
-    include __DIR__ . '/../usuario/dashboard.php';
-    exit();
-}
+requireAdmin();
 
 $pageTitle = 'Panel de Administración';
 
