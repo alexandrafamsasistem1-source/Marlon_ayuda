@@ -5,12 +5,16 @@
  */
 
 session_start();
+require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 // Verificar que esté logueado (usuario normal)
-requireLogin();
+if (!isLoggedIn()) {
+    include __DIR__ . '/../auth/login.php';
+    exit();
+}
 if (isAdmin()) {
-    header('Location: /admin/dashboard.php');
+    include __DIR__ . '/../admin/dashboard.php';
     exit();
 }
 
@@ -92,7 +96,7 @@ $tickets = getUserTickets($usuario_id, 100, 0);
                             </small>
                         </td>
                         <td>
-                            <a href="/usuario/ver_ticket.php?id=<?php echo $ticket['id']; ?>" class="btn btn-sm btn-info">
+                            <a href="<?php echo BASE_URL; ?>/usuario/ver_ticket.php?id=<?php echo $ticket['id']; ?>" class="btn btn-sm btn-info">
                                 <i class="fas fa-eye"></i> Ver
                             </a>
                         </td>

@@ -4,10 +4,18 @@
  */
 
 session_start();
+require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 // Verificar que sea admin
-requireAdmin();
+if (!isLoggedIn()) {
+    include __DIR__ . '/../auth/login.php';
+    exit();
+}
+if (!isAdmin()) {
+    include __DIR__ . '/../usuario/dashboard.php';
+    exit();
+}
 
 $pageTitle = 'Reportes';
 

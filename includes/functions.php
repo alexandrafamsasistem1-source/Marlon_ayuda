@@ -31,7 +31,7 @@ function isAdmin() {
  */
 function requireLogin() {
     if (!isLoggedIn()) {
-        header('Location: /auth/login.php');
+        header('Location: ' . BASE_URL . '/auth/login.php');
         exit();
     }
 }
@@ -41,7 +41,7 @@ function requireLogin() {
  */
 function requireLogout() {
     if (isLoggedIn()) {
-        header('Location: /dashboard.php');
+        header('Location: ' . BASE_URL . '/index.php');
         exit();
     }
 }
@@ -52,7 +52,7 @@ function requireLogout() {
 function requireAdmin() {
     requireLogin();
     if (!isAdmin()) {
-        header('Location: /usuario/dashboard.php');
+        header('Location: ' . BASE_URL . '/usuario/dashboard.php');
         exit();
     }
 }

@@ -4,10 +4,18 @@
  */
 
 session_start();
+require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 // Verificar que sea admin
-requireAdmin();
+if (!isLoggedIn()) {
+    include __DIR__ . '/../auth/login.php';
+    exit();
+}
+if (!isAdmin()) {
+    include __DIR__ . '/../usuario/dashboard.php';
+    exit();
+}
 
 $pageTitle = 'Panel de Administración';
 
@@ -69,7 +77,7 @@ $total_tickets = countTotalTickets();
         <h4 class="mb-0">
             <i class="fas fa-table"></i> Todos los Tickets
         </h4>
-        <a href="/admin/reportes.php" class="btn btn-sm btn-info">
+        <a href="<?php echo BASE_URL; ?>/admin/reportes.php" class="btn btn-sm btn-info">
             <i class="fas fa-chart-bar"></i> Ver Reportes
         </a>
     </div>
@@ -171,7 +179,7 @@ $total_tickets = countTotalTickets();
                                     </small>
                                 </td>
                                 <td>
-                                    <a href="/admin/ver_ticket.php?id=<?php echo $ticket['id']; ?>" class="btn btn-sm btn-primary">
+                                    <a href="<?php echo BASE_URL; ?>/admin/ver_ticket.php?id=<?php echo $ticket['id']; ?>" class="btn btn-sm btn-primary">
                                         <i class="fas fa-eye"></i> Ver
                                     </a>
                                 </td>

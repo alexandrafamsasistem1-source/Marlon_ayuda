@@ -5,6 +5,7 @@
  */
 
 session_start();
+require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/functions.php';
 
 $pageTitle = 'Test - Verificación del Sistema';
@@ -210,29 +211,29 @@ $pageTitle = 'Test - Verificación del Sistema';
             </div>
             <div class="card-body">
                 <div class="list-group">
-                    <a href="/auth/login.php" class="list-group-item list-group-item-action">
+                    <a href="<?php echo BASE_URL; ?>/auth/login.php" class="list-group-item list-group-item-action">
                         <i class="fas fa-sign-in-alt"></i> Página de Login
                     </a>
-                    <a href="/auth/register.php" class="list-group-item list-group-item-action">
+                    <a href="<?php echo BASE_URL; ?>/auth/register.php" class="list-group-item list-group-item-action">
                         <i class="fas fa-user-plus"></i> Página de Registro
                     </a>
                     <?php if (isLoggedIn()): ?>
                         <?php if (isAdmin()): ?>
-                            <a href="/admin/dashboard.php" class="list-group-item list-group-item-action">
+                            <a href="<?php echo BASE_URL; ?>/admin/dashboard.php" class="list-group-item list-group-item-action">
                                 <i class="fas fa-tachometer-alt"></i> Panel Administrativo
                             </a>
-                            <a href="/admin/reportes.php" class="list-group-item list-group-item-action">
+                            <a href="<?php echo BASE_URL; ?>/admin/reportes.php" class="list-group-item list-group-item-action">
                                 <i class="fas fa-chart-bar"></i> Reportes
                             </a>
                         <?php else: ?>
-                            <a href="/usuario/dashboard.php" class="list-group-item list-group-item-action">
+                            <a href="<?php echo BASE_URL; ?>/usuario/dashboard.php" class="list-group-item list-group-item-action">
                                 <i class="fas fa-home"></i> Mi Dashboard
                             </a>
-                            <a href="/usuario/crear_ticket.php" class="list-group-item list-group-item-action">
+                            <a href="<?php echo BASE_URL; ?>/usuario/crear_ticket.php" class="list-group-item list-group-item-action">
                                 <i class="fas fa-plus-circle"></i> Crear Ticket
                             </a>
                         <?php endif; ?>
-                        <a href="/logout.php" class="list-group-item list-group-item-action text-danger">
+                        <a href="<?php echo BASE_URL; ?>/logout.php" class="list-group-item list-group-item-action text-danger">
                             <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
                         </a>
                     <?php endif; ?>

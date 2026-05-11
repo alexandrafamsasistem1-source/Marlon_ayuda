@@ -4,12 +4,16 @@
  */
 
 session_start();
+require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 // Verificar que esté logueado (usuario normal)
-requireLogin();
+if (!isLoggedIn()) {
+    include __DIR__ . '/../auth/login.php';
+    exit();
+}
 if (isAdmin()) {
-    header('Location: /admin/dashboard.php');
+    include __DIR__ . '/../admin/dashboard.php';
     exit();
 }
 
@@ -48,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = createTicket($usuario_id, $asunto, $descripcion, $ubicacion);
 
         if ($result['success']) {
-            echo '<script>alert("¡Ticket creado exitosamente!"); window.location.href="/usuario/dashboard.php";</script>';
+            echo '<script>alert("¡Ticket creado exitosamente!"); window.location.href="' . BASE_URL . '/usuario/dashboard.php";</script>';
             exit();
         } else {
             $error = $result['error'] ?? 'Error al crear el ticket.';
@@ -140,7 +144,7 @@ $usuario = getUserById($usuario_id);
                         <button type="submit" class="btn btn-success">
                             <i class="fas fa-paper-plane"></i> Enviar Ticket
                         </button>
-                        <a href="/usuario/dashboard.php" class="btn btn-secondary">
+                        <a href="<?php echo BASE_URL; ?>/usuario/dashboard.php" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Cancelar
                         </a>
                     </div>

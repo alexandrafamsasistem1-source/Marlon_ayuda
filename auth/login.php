@@ -4,10 +4,18 @@
  */
 
 session_start();
+require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
-// Si ya está logueado, redirigir
-requireLogout();
+// Si ya está logueado, mostrar dashboard
+if (isLoggedIn()) {
+    if (isAdmin()) {
+        include __DIR__ . '/../admin/dashboard.php';
+    } else {
+        include __DIR__ . '/../usuario/dashboard.php';
+    }
+    exit();
+}
 
 $pageTitle = 'Login';
 

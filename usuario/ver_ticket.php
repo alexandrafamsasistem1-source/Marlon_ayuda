@@ -4,10 +4,14 @@
  */
 
 session_start();
+require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 // Verificar que esté logueado
-requireLogin();
+if (!isLoggedIn()) {
+    include __DIR__ . '/../auth/login.php';
+    exit();
+}
 
 $pageTitle = 'Ver Ticket';
 $usuario_id = getUserId();
@@ -228,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket['usuario_id'] === $usuario_
             </div>
         </div>
 
-        <a href="/usuario/dashboard.php" class="btn btn-secondary w-100">
+        <a href="<?php echo BASE_URL; ?>/usuario/dashboard.php" class="btn btn-secondary w-100">
             <i class="fas fa-arrow-left"></i> Volver al Dashboard
         </a>
     </div>

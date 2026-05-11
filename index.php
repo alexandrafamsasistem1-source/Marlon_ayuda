@@ -1,24 +1,23 @@
 <?php
 /**
  * Punto de entrada principal
- * Redirige a login o dashboard según estado de sesión
+ * Muestra login o dashboard según estado de sesión
  */
 
 session_start();
+require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/functions.php';
 
 if (isLoggedIn()) {
-    // Si es admin, ir a dashboard admin
+    // Si es admin, mostrar dashboard admin
     if (isAdmin()) {
-        header('Location: /admin/dashboard.php');
+        require_once __DIR__ . '/admin/dashboard.php';
     } else {
-        // Si es usuario regular, ir a dashboard usuario
-        header('Location: /usuario/dashboard.php');
+        // Si es usuario regular, mostrar dashboard usuario
+        require_once __DIR__ . '/usuario/dashboard.php';
     }
-    exit();
 } else {
-    // Si no está logueado, ir a login
-    header('Location: /auth/login.php');
-    exit();
+    // Si no está logueado, mostrar login
+    require_once __DIR__ . '/auth/login.php';
 }
 ?>

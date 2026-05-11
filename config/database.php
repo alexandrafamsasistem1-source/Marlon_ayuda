@@ -4,6 +4,9 @@
  * Conexión PDO a MySQL
  */
 
+// Ruta base de la aplicación (para URLs correctas)
+define('BASE_URL', '/proyecto_ayuda_app');
+
 // Datos de conexión - CAMBIAR según tu ambiente
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
