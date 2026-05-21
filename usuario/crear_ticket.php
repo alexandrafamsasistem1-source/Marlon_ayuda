@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $usuario = getUserById($usuario_id);
 ?>
 
-<?php include __DIR__ . '/../includes/header.php'; ?>
+<?php include __DIR__ . '/../proyecto_ayuda_app/includes/header.php'; ?>
 
 <div class="row justify-content-center">
     <div class="col-lg-8">
@@ -144,7 +144,7 @@ $usuario = getUserById($usuario_id);
                         <button type="submit" class="btn btn-success">
                             <i class="fas fa-paper-plane"></i> Enviar Ticket
                         </button>
-                        <a href="<?php echo BASE_URL; ?>/usuario/dashboard.php" class="btn btn-secondary">
+                        <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/usuario/dashboard.php" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Cancelar
                         </a>
                     </div>
@@ -156,4 +156,4 @@ $usuario = getUserById($usuario_id);
     </div>
 </div>
 
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php include __DIR__ . '/../proyecto_ayuda_app/includes/footer.php'; ?>

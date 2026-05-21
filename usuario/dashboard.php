@@ -25,13 +25,13 @@ $usuario_id = getUserId();
 $tickets = getUserTickets($usuario_id, 100, 0);
 ?>
 
-<?php include __DIR__ . '/../includes/header.php'; ?>
+<?php include __DIR__ . '/../proyecto_ayuda_app/includes/header.php'; ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>
         <i class="fas fa-list"></i> Mis Tickets de Ayuda
     </h2>
-    <a href="<?php echo BASE_URL; ?>/usuario/crear_ticket.php" class="btn btn-primary">
+    <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/usuario/crear_ticket.php" class="btn btn-primary">
         <i class="fas fa-plus-circle"></i> Crear Nuevo Ticket
     </a>
 </div>
@@ -40,7 +40,7 @@ $tickets = getUserTickets($usuario_id, 100, 0);
     <div class="alert alert-info" role="alert">
         <i class="fas fa-info-circle"></i> 
         <strong>No tienes tickets aún.</strong>
-        <a href="<?php echo BASE_URL; ?>/usuario/crear_ticket.php" class="alert-link">Crea uno ahora</a> para reportar tu problema.
+        <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/usuario/crear_ticket.php" class="alert-link">Crea uno ahora</a> para reportar tu problema.
     </div>
 <?php else: ?>
     <div class="table-responsive">
@@ -96,7 +96,7 @@ $tickets = getUserTickets($usuario_id, 100, 0);
                             </small>
                         </td>
                         <td>
-                            <a href="<?php echo BASE_URL; ?>/usuario/ver_ticket.php?id=<?php echo $ticket['id']; ?>" class="btn btn-sm btn-info">
+                            <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/usuario/ver_ticket.php?id=<?php echo $ticket['id']; ?>" class="btn btn-sm btn-info">
                                 <i class="fas fa-eye"></i> Ver
                             </a>
                         </td>
@@ -107,4 +107,4 @@ $tickets = getUserTickets($usuario_id, 100, 0);
     </div>
 <?php endif; ?>
 
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php include __DIR__ . '/../proyecto_ayuda_app/includes/footer.php'; ?>
