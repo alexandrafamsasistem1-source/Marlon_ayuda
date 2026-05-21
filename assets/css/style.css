@@ -1,21 +1,24 @@
 /* Estilos personalizados para el Sistema de Tickets */
 
 :root {
-    --primary-color: #007bff;
+    /* Palette inspired by Alexandra Farms images */
+    --primary-color: #0b6b47; /* deep green */
+    --primary-dark: #085033; /* darker green */
+    --accent-gold: #c9b07a; /* gold accent */
     --secondary-color: #6c757d;
     --success-color: #28a745;
     --danger-color: #dc3545;
     --warning-color: #ffc107;
     --info-color: #17a2b8;
-    --light-color: #f8f9fa;
-    --dark-color: #343a40;
+    --light-color: #f7f8f6;
+    --dark-color: #1f2b2a;
 }
 
 /* Body y General */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f5f5f5;
-    color: #333;
+    background-color: var(--light-color);
+    color: #222;
 }
 
 main {
@@ -24,43 +27,52 @@ main {
 
 /* Navbar */
 .navbar {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    background: white; /* keep navbar light, brand will have color */
 }
 
 .navbar-brand {
-    font-weight: 600;
-    font-size: 1.3rem;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: white !important;
+    background: var(--primary-color);
+    padding: 0.45rem 0.9rem;
+    border-radius: 0.4rem;
+    display: inline-block;
 }
 
 /* Cards */
 .card {
     border: none;
-    border-radius: 0.5rem;
-    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: 0.6rem;
+    transition: transform 0.18s, box-shadow 0.18s;
+    background: #ffffff;
 }
 
 .card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12) !important;
 }
 
 .card-header {
-    border-bottom: 2px solid rgba(0, 0, 0, 0.125);
-    font-weight: 500;
+    border-bottom: none;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+    color: #fff;
+    font-weight: 600;
 }
 
 /* Badges */
 .badge {
-    padding: 0.4rem 0.6rem;
+    padding: 0.35rem 0.6rem;
     font-size: 0.85rem;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 /* Botones */
 .btn {
-    font-weight: 500;
+    font-weight: 600;
     border-radius: 0.35rem;
-    transition: all 0.3s ease;
+    transition: all 0.18s ease;
 }
 
 .btn:hover {
@@ -108,13 +120,13 @@ main {
 /* Forms */
 .form-control, .form-select {
     border-radius: 0.35rem;
-    border: 1px solid #ddd;
+    border: 1px solid #e3e3e3;
     font-size: 0.95rem;
 }
 
 .form-control:focus, .form-select:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 0.18rem rgba(11,107,71,0.12);
 }
 
 .form-label {
@@ -217,3 +229,76 @@ footer {
 ::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
+
+/* Strong overrides to ensure fresh palette (uses !important to bypass any cached rules) */
+:root{--app-primary:#0b6b47;--app-primary-dark:#085033;--app-accent:#c9b07a}
+body{background:#f7f8f6 !important;color:#222 !important}
+.navbar{background:#fff !important;box-shadow:0 2px 6px rgba(0,0,0,0.06) !important}
+.navbar-brand{background:var(--app-primary) !important;color:#fff !important;padding:.45rem .9rem;border-radius:.4rem;display:inline-block}
+.navbar .nav-link{color:#333 !important}
+.card{border-radius:.6rem !important;background:#fff !important}
+.card .card-body{padding:2rem !important}
+.card .card-title .fa-ticket-alt, .card .card-title .fa-user-plus{color:var(--app-primary) !important}
+.btn-primary{background:var(--app-primary) !important;border-color:var(--app-primary) !important;color:#fff !important}
+.btn-primary:hover{background:var(--app-primary-dark) !important;border-color:var(--app-primary-dark) !important}
+footer{background:#fff !important;color:#666 !important}
+
+/* Auth-specific layout */
+.auth-wrapper{margin:3.5rem 0 !important}
+.auth-wrapper .card{max-width:720px;margin:0 auto !important}
+
+/* Ensure inputs look consistent */
+.form-control{border:1px solid #e3e3e3 !important}
+.form-control:focus{box-shadow:0 0 0 0.18rem rgba(11,107,71,0.12) !important;border-color:var(--app-primary) !important}
+
+/* Misc */
+.hero-banner{background:linear-gradient(90deg,var(--app-primary),var(--app-primary-dark)) !important;color:#fff !important}
+
+/* Auth (login/register) specific styles */
+.auth-wrapper {
+    margin: 3.5rem 0;
+}
+.auth-card {
+    padding: 2rem;
+    border-radius: 0.6rem;
+}
+.auth-logo-img {
+    max-width: 80%;
+    opacity: 0.95;
+}
+.auth-left {
+    display:flex; align-items:center; justify-content:center;
+}
+
+/* Primary buttons */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    color: #fff;
+}
+
+/* Hero/banner for admin pages */
+.hero-banner {
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+    color: #fff;
+    padding: 1.6rem;
+    border-radius: 0.8rem;
+    box-shadow: 0 6px 18px rgba(11,107,71,0.06);
+}
+.hero-banner h2 { margin:0; font-weight:700; }
+.hero-banner .small { opacity:0.9 }
+
+/* Footer refinement */
+footer {
+    background: #fff;
+    color: #666;
+}
+
+/* Tables and cards accent */
+.table thead th { background: transparent; color: #222; }
+.card .card-header .badge { background: rgba(255,255,255,0.15); }

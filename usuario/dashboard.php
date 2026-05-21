@@ -31,7 +31,7 @@ $tickets = getUserTickets($usuario_id, 100, 0);
     <h2>
         <i class="fas fa-list"></i> Mis Tickets de Ayuda
     </h2>
-    <a href="/usuario/crear_ticket.php" class="btn btn-primary">
+    <a href="<?php echo BASE_URL; ?>/usuario/crear_ticket.php" class="btn btn-primary">
         <i class="fas fa-plus-circle"></i> Crear Nuevo Ticket
     </a>
 </div>
@@ -40,7 +40,7 @@ $tickets = getUserTickets($usuario_id, 100, 0);
     <div class="alert alert-info" role="alert">
         <i class="fas fa-info-circle"></i> 
         <strong>No tienes tickets aún.</strong>
-        <a href="/usuario/crear_ticket.php" class="alert-link">Crea uno ahora</a> para reportar tu problema.
+        <a href="<?php echo BASE_URL; ?>/usuario/crear_ticket.php" class="alert-link">Crea uno ahora</a> para reportar tu problema.
     </div>
 <?php else: ?>
     <div class="table-responsive">
