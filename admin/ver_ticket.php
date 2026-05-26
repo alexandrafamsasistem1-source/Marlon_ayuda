@@ -9,7 +9,7 @@ require_once __DIR__ . '/../includes/functions.php';
 
 // Verificar que sea admin
 if (!isLoggedIn()) {
-    include __DIR__ . '/../proyecto_ayuda_app/auth/login.php';
+    include __DIR__ . '/../auth/login.php';
     exit();
 }
 if (!isAdmin()) {
@@ -273,7 +273,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             </div>
         </div>
 
-        <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/admin/dashboard.php" class="btn btn-secondary w-100">
+        <a href="<?php echo BASE_URL; ?>/admin/dashboard.php" class="btn btn-secondary w-100">
             <i class="fas fa-arrow-left"></i> Volver
         </a>
     </div>

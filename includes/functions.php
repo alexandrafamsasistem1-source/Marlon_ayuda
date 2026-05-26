@@ -4,10 +4,11 @@
  */
 
 // Obtener conexión a base de datos globalmente
-function getDB() {
+unction getDB() {
     static $pdo = null;
     if ($pdo === null) {
-        $pdo = require_once __DIR__ . '/../config/database.php';
+        // Cambiamos require_once por require para que siempre retorne el objeto $pdo correctamente
+        $pdo = require __DIR__ . '/../config/database.php'; 
     }
     return $pdo;
 }
@@ -31,7 +32,7 @@ function isAdmin() {
  */
 function requireLogin() {
     if (!isLoggedIn()) {
-        header('Location: ' . BASE_URL . '/proyecto_ayuda_app/auth/login.php');
+        header('Location: ' . BASE_URL . '/auth/login.php');
         exit();
     }
 }
@@ -41,7 +42,7 @@ function requireLogin() {
  */
 function requireLogout() {
     if (isLoggedIn()) {
-        header('Location: ' . BASE_URL . '/proyecto_ayuda_app/index.php');
+        header('Location: ' . BASE_URL . '/index.php');
         exit();
     }
 }
@@ -52,7 +53,7 @@ function requireLogout() {
 function requireAdmin() {
     requireLogin();
     if (!isAdmin()) {
-        header('Location: ' . BASE_URL . '/proyecto_ayuda_app/usuario/dashboard.php');
+        header('Location: ' . BASE_URL . '/usuario/dashboard.php');
         exit();
     }
 }

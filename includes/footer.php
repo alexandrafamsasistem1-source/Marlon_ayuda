@@ -1,30 +1,36 @@
 <?php
 /**
  * Footer Bootstrap
- * Se incluye al final de cada página
+ 
  */
 ?>
         </div>
     </main>
 
     <!-- Footer -->
-    <footer class="bg-dark text-white text-center py-4 mt-5">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>Sistema de Tickets de Ayuda</h5>
-                    <p class="text-muted">Gestión eficiente de solicitudes de soporte</p>
-                </div>
-                <div class="col-md-6">
-                    <h5>Ubicaciones</h5>
-                    <p class="text-muted">
-                        <i class="fas fa-map-marker-alt"></i> Finca El Jardín<br>
-                        <i class="fas fa-map-marker-alt"></i> San Ignacio
-                    </p>
-                </div>
+    <footer>
+        <div class="footer-inner container">
+            <div class="footer-col">
+                <h5>Sistema de Tickets de Ayuda</h5>
+                <p class="small text-muted">Gestión eficiente de solicitudes de soporte para su finca y estaciones.</p>
+                <ul class="list-unstyled small mt-2">
+                    <li><a href="#" class="text-decoration-none">Centro de ayuda</a></li>
+                    <li><a href="#" class="text-decoration-none">Términos y privacidad</a></li>
+                </ul>
             </div>
-            <hr class="bg-secondary">
-            <p class="text-muted mb-0">&copy; 2026 Sistema de Tickets. Todos los derechos reservados.</p>
+
+            <div class="footer-col">
+                <h5>Ubicaciones</h5>
+                <p class="small text-muted mb-0">
+                    <i class="fas fa-map-marker-alt me-2"></i>Finca El Jardín<br>
+                    <i class="fas fa-map-marker-alt me-2"></i>San Ignacio
+                </p>
+            </div>
+
+            <div class="w-100" style="border-top:1px solid rgba(0,0,0,0.06); margin-top:1.5rem"></div>
+            <div class="w-100 mt-3 text-center">
+                <p class="small mb-0 text-muted">&copy; 2026 Sistema de Tickets. Todos los derechos reservados.</p>
+            </div>
         </div>
     </footer>
 

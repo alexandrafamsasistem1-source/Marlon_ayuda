@@ -232,10 +232,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket['usuario_id'] === $usuario_
             </div>
         </div>
 
-        <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/usuario/dashboard.php" class="btn btn-secondary w-100">
+        <a href="<?php echo BASE_URL; ?>/usuario/dashboard.php" class="btn btn-secondary w-100">
             <i class="fas fa-arrow-left"></i> Volver al Dashboard
         </a>
     </div>
 </div>
 
-<?php include __DIR__ . '/../proyecto_ayuda_app/includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

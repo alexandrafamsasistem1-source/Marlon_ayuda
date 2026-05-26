@@ -154,17 +154,17 @@ $pageTitle = 'Test - Verificación del Sistema';
                     'index.php' => 'Punto de entrada',
                     'logout.php' => 'Cerrar sesión',
                     'config/database.php' => 'Configuración BD',
-                    '/proyecto_ayuda_app/includes/functions.php' => 'Funciones principales',
-                    '/proyecto_ayuda_app/includes/header.php' => 'Navbar',
-                    '/proyecto_ayuda_app/includes/footer.php' => 'Footer',
-                    '/proyecto_ayuda_app/auth/login.php' => 'Página de login',
-                    '/proyecto_ayuda_app/auth/register.php' => 'Página de registro',
-                    '/proyecto_ayuda_app/usuario/dashboard.php' => 'Dashboard usuario',
-                    '/proyecto_ayuda_app/usuario/crear_ticket.php' => 'Crear ticket',
-                    '/proyecto_ayuda_app/usuario/ver_ticket.php' => 'Ver ticket (usuario)',
-                    '/proyecto_ayuda_app/admin/dashboard.php' => 'Panel admin',
-                    '/proyecto_ayuda_app/admin/ver_ticket.php' => 'Ver ticket (admin)',
-                    '/proyecto_ayuda_app/admin/reportes.php' => 'Reportes',
+                    '/includes/functions.php' => 'Funciones principales',
+                    '/includes/header.php' => 'Navbar',
+                    '/includes/footer.php' => 'Footer',
+                    '/auth/login.php' => 'Página de login',
+                    '/auth/register.php' => 'Página de registro',
+                    '/usuario/dashboard.php' => 'Dashboard usuario',
+                    '/usuario/crear_ticket.php' => 'Crear ticket',
+                    '/usuario/ver_ticket.php' => 'Ver ticket (usuario)',
+                    '/admin/dashboard.php' => 'Panel admin',
+                    '/admin/ver_ticket.php' => 'Ver ticket (admin)',
+                    '/admin/reportes.php' => 'Reportes',
                     'assets/css/style.css' => 'Estilos CSS',
                     'assets/js/main.js' => 'JavaScript',
                 ];
@@ -197,7 +197,7 @@ $pageTitle = 'Test - Verificación del Sistema';
                 } else {
                     echo '<div class="alert alert-info">';
                     echo '<i class="fas fa-info-circle"></i> No hay sesión activa.';
-                    echo ' <a href="' . BASE_URL . '/proyecto_ayuda_app/auth/login.php" class="alert-link">Iniciar sesión</a>';
+                    echo ' <a href="' . BASE_URL . '/auth/login.php" class="alert-link">Iniciar sesión</a>';
                     echo '</div>';
                 }
                 ?>
@@ -211,29 +211,29 @@ $pageTitle = 'Test - Verificación del Sistema';
             </div>
             <div class="card-body">
                 <div class="list-group">
-                    <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/auth/login.php" class="list-group-item list-group-item-action">
+                    <a href="<?php echo BASE_URL; ?>/auth/login.php" class="list-group-item list-group-item-action">
                         <i class="fas fa-sign-in-alt"></i> Página de Login
                     </a>
-                    <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/auth/register.php" class="list-group-item list-group-item-action">
+                    <a href="<?php echo BASE_URL; ?>/auth/register.php" class="list-group-item list-group-item-action">
                         <i class="fas fa-user-plus"></i> Página de Registro
                     </a>
                     <?php if (isLoggedIn()): ?>
                         <?php if (isAdmin()): ?>
-                            <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/admin/dashboard.php" class="list-group-item list-group-item-action">
+                            <a href="<?php echo BASE_URL; ?>/admin/dashboard.php" class="list-group-item list-group-item-action">
                                 <i class="fas fa-tachometer-alt"></i> Panel Administrativo
                             </a>
-                            <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/admin/reportes.php" class="list-group-item list-group-item-action">
+                            <a href="<?php echo BASE_URL; ?>/admin/reportes.php" class="list-group-item list-group-item-action">
                                 <i class="fas fa-chart-bar"></i> Reportes
                             </a>
                         <?php else: ?>
-                            <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/usuario/dashboard.php" class="list-group-item list-group-item-action">
+                            <a href="<?php echo BASE_URL; ?>/usuario/dashboard.php" class="list-group-item list-group-item-action">
                                 <i class="fas fa-home"></i> Mi Dashboard
                             </a>
-                            <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/usuario/crear_ticket.php" class="list-group-item list-group-item-action">
+                            <a href="<?php echo BASE_URL; ?>/usuario/crear_ticket.php" class="list-group-item list-group-item-action">
                                 <i class="fas fa-plus-circle"></i> Crear Ticket
                             </a>
                         <?php endif; ?>
-                        <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/logout.php" class="list-group-item list-group-item-action text-danger">
+                        <a href="<?php echo BASE_URL; ?>/logout.php" class="list-group-item list-group-item-action text-danger">
                             <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
                         </a>
                     <?php endif; ?>

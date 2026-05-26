@@ -172,7 +172,7 @@ $total_tickets = countTotalTickets();
                                     </small>
                                 </td>
                                 <td>
-                                    <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/admin/ver_ticket.php?id=<?php echo $ticket['id']; ?>" class="btn btn-sm btn-primary">
+                                    <a href="<?php echo BASE_URL; ?>/admin/ver_ticket.php?id=<?php echo $ticket['id']; ?>" class="btn btn-sm btn-primary">
                                         <i class="fas fa-eye"></i> Ver
                                     </a>
                                 </td>
@@ -186,4 +186,4 @@ $total_tickets = countTotalTickets();
     </div>
 </div>
 
-<?php include __DIR__ . '/../proyecto_ayuda_app/includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

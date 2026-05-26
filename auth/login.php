@@ -10,7 +10,7 @@ require_once __DIR__ . '/../includes/functions.php';
 // Si ya está logueado, mostrar dashboard
 if (isLoggedIn()) {
     if (isAdmin()) {
-        include __DIR__ . '/../proyecto_ayuda_app/admin/dashboard.php';
+        include __DIR__ . '/../admin/dashboard.php';
     } else {
         include __DIR__ . '/../usuario/dashboard.php';
     }
@@ -59,9 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Redirigir al dashboard correspondiente
                 if ($usuario['rol'] === 'admin') {
-                    header('Location: ' . BASE_URL . '/proyecto_ayuda_app/admin/dashboard.php');
+                    header('Location: ' . BASE_URL . '/admin/dashboard.php');
                 } else {
-                    header('Location: ' . BASE_URL . '/proyecto_ayuda_app/usuario/dashboard.php');
+                    header('Location: ' . BASE_URL . '/usuario/dashboard.php');
                 }
                 exit();
             }
@@ -133,7 +133,7 @@ footer{background:#fff;color:#666}
                 <div class="text-center">
                     <p class="text-muted mb-0">
                         ¿No tienes cuenta? 
-                        <a href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/auth/register.php" class="text-decoration-none">
+                        <a href="<?php echo BASE_URL; ?>/auth/register.php" class="text-decoration-none">
                             Registrarse aquí
                         </a>
                     </p>

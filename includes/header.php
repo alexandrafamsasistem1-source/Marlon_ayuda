@@ -38,7 +38,7 @@ require_once __DIR__ . '/functions.php';
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <?php if (isLoggedIn()): ?>
+                        <?php if (isLoggedIn()): ?>
                         <li class="nav-item">
                             <span class="nav-link text-info">
                                 <i class="fas fa-user-circle"></i> <?php echo sanitize(getUserName()); ?>
@@ -46,30 +46,30 @@ require_once __DIR__ . '/functions.php';
                         </li>
                         <?php if (isAdmin()): ?>
                             <li class="nav-item">
-                                <a class="nav-link" href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/admin/dashboard.php">
+                                <a class="nav-link" href="<?php echo BASE_URL; ?>/admin/dashboard.php">
                                     <i class="fas fa-tachometer-alt"></i> Admin
                                 </a>
                             </li>
                         <?php else: ?>
                             <li class="nav-item">
-                                <a class="nav-link" href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/usuario/dashboard.php">
+                                <a class="nav-link" href="<?php echo BASE_URL; ?>/usuario/dashboard.php">
                                     <i class="fas fa-home"></i> Dashboard
                                 </a>
                             </li>
                         <?php endif; ?>
                         <li class="nav-item">
-                            <a class="nav-link text-danger" href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/logout.php">
+                            <a class="nav-link text-danger" href="<?php echo BASE_URL; ?>/logout.php">
                                 <i class="fas fa-sign-out-alt"></i> Logout
                             </a>
                         </li>
                     <?php else: ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/auth/login.php">
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>/auth/login.php">
                                 <i class="fas fa-sign-in-alt"></i> Login
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="<?php echo BASE_URL; ?>/proyecto_ayuda_app/auth/register.php">
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>/auth/register.php">
                                 <i class="fas fa-user-plus"></i> Registrarse
                             </a>
                         </li>

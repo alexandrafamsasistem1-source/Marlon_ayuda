@@ -5,7 +5,23 @@
  */
 
 // Ruta base de la aplicación (para URLs correctas)
-define('BASE_URL', '/proyecto_ayuda_app');
+// Se calcula dinámicamente en entorno local (incluye esquema y host)
+// Intenta obtener la ruta del proyecto relativa a DOCUMENT_ROOT
+$documentRoot = isset($_SERVER['DOCUMENT_ROOT']) ? realpath($_SERVER['DOCUMENT_ROOT']) : null;
+$projectRoot = realpath(__DIR__ . '/..');
+$basePath = '';
+if ($documentRoot && $projectRoot) {
+    $doc = str_replace('\\', '/', $documentRoot);
+    $proj = str_replace('\\', '/', $projectRoot);
+    $basePath = str_replace($doc, '', $proj);
+}
+if ($basePath === '') {
+    $basePath = '/';
+}
+if (substr($basePath, 0, 1) !== '/') $basePath = '/' . $basePath;
+$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+define('BASE_URL', rtrim($scheme . '://' . $host . $basePath, '/'));
 
 // Datos de conexión - CAMBIAR según tu ambiente
 define('DB_HOST', 'localhost');
