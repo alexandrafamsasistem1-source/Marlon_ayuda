@@ -139,12 +139,7 @@ footer{background:#fff;color:#666}
                     </p>
                 </div>
 
-                <!-- Credenciales de prueba -->
-                <div class="alert alert-info mt-4 small">
-                    <strong>Pruebas:</strong><br>
-                    <strong>Admin:</strong> admin@tickets.local / admin123<br>
-                    <strong>Usuario:</strong> usuario@tickets.local / usuario123
-                </div>
+                <!-- (Credenciales de prueba eliminadas) -->
             </div>
         </div>
     </div>

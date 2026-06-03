@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     asunto VARCHAR(255) NOT NULL,
     descripcion LONGTEXT NOT NULL,
     ubicacion ENUM('Finca El Jardín', 'San Ignacio') NOT NULL,
+    area ENUM('Administracion','Poscosecha') NOT NULL DEFAULT 'Administracion',
     estado ENUM('Nuevo', 'En proceso', 'Resuelto', 'Cerrado') NOT NULL DEFAULT 'Nuevo',
     asignado_a INT,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -32,6 +33,9 @@ CREATE TABLE IF NOT EXISTS tickets (
     INDEX idx_estado (estado),
     INDEX idx_ubicacion (ubicacion)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Si ya existe la tabla y falta la columna 'area', se puede agregar con la siguiente instrucción (MySQL 8+):
+-- ALTER TABLE tickets ADD COLUMN IF NOT EXISTS area ENUM('Administracion','Poscosecha') NOT NULL DEFAULT 'Administracion';
 
 -- Tabla de respuestas en tickets
 CREATE TABLE IF NOT EXISTS respuestas_ticket (

@@ -4,11 +4,24 @@
  */
 
 // Obtener conexión a base de datos globalmente
-unction getDB() {
+function getDB() {
     static $pdo = null;
     if ($pdo === null) {
-        // Cambiamos require_once por require para que siempre retorne el objeto $pdo correctamente
-        $pdo = require __DIR__ . '/../config/database.php'; 
+        // Si ya existe una conexión en el scope global (por includes previos), úsala
+        if (isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof PDO) {
+            $pdo = $GLOBALS['pdo'];
+        } else {
+            // Incluir el archivo de configuración y usar el PDO retornado
+            $ret = require __DIR__ . '/../config/database.php';
+            if ($ret instanceof PDO) {
+                $pdo = $ret;
+                // Guardar en global para futuros includes
+                $GLOBALS['pdo'] = $pdo;
+            } else {
+                // Si no se obtuvo un PDO, lanzar excepción clara
+                throw new RuntimeException('No se pudo obtener la conexión PDO desde config/database.php');
+            }
+        }
     }
     return $pdo;
 }
@@ -132,14 +145,14 @@ function getUserByEmail($email) {
  */
 function createUser($nombre, $email, $password, $rol = 'usuario') {
     $pdo = getDB();
-    
+
     if (getUserByEmail($email)) {
         return ['success' => false, 'error' => 'El email ya existe'];
     }
-    
+
     $passwordHashed = hashPassword($password);
     $stmt = $pdo->prepare('INSERT INTO usuarios (nombre, email, password, rol) VALUES (?, ?, ?, ?)');
-    
+
     if ($stmt->execute([$nombre, $email, $passwordHashed, $rol])) {
         return ['success' => true, 'usuario_id' => $pdo->lastInsertId()];
     } else {
@@ -152,13 +165,22 @@ function createUser($nombre, $email, $password, $rol = 'usuario') {
  */
 function getAllTickets($limit = 50, $offset = 0) {
     $pdo = getDB();
-    $stmt = $pdo->prepare('
-        SELECT 
+    // Incluir columna 'urgencia' si existe
+    $selectUrgencia = '';
+    try {
+        $hasUrg = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . DB_NAME . "' AND TABLE_NAME = 'tickets' AND COLUMN_NAME = 'urgencia'")->fetchColumn();
+        if ($hasUrg) $selectUrgencia = ', t.urgencia';
+    } catch (Exception $e) {
+        $selectUrgencia = '';
+    }
+
+    $sql = "SELECT 
             t.id,
             t.asunto,
+            t.asignado_a,
             t.estado,
             t.ubicacion,
-            t.fecha_creacion,
+            t.fecha_creacion" . $selectUrgencia . ",
             u.nombre as usuario_nombre,
             u.email as usuario_email,
             a.nombre as asignado_nombre
@@ -166,8 +188,9 @@ function getAllTickets($limit = 50, $offset = 0) {
         LEFT JOIN usuarios u ON t.usuario_id = u.id
         LEFT JOIN usuarios a ON t.asignado_a = a.id
         ORDER BY t.fecha_creacion DESC
-        LIMIT ? OFFSET ?
-    ');
+        LIMIT ? OFFSET ?";
+
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([$limit, $offset]);
     return $stmt->fetchAll();
 }
@@ -175,40 +198,43 @@ function getAllTickets($limit = 50, $offset = 0) {
 /**
  * Obtener tickets del usuario actual
  */
-function getUserTickets($usuario_id, $limit = 50, $offset = 0) {
-    $pdo = getDB();
-    $stmt = $pdo->prepare('
-        SELECT 
-            id,
-            asunto,
-            estado,
-            ubicacion,
-            fecha_creacion
-        FROM tickets
-        WHERE usuario_id = ?
-        ORDER BY fecha_creacion DESC
-        LIMIT ? OFFSET ?
-    ');
-    $stmt->execute([$usuario_id, $limit, $offset]);
-    return $stmt->fetchAll();
-}
+
+    function getUserTickets($usuario_id, $limit = 50, $offset = 0) {
+        $pdo = getDB();
+        // Comprobar si existe la columna 'area' y seleccionar si está disponible
+        $hasArea = false;
+        try {
+            $hasArea = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . DB_NAME . "' AND TABLE_NAME = 'tickets' AND COLUMN_NAME = 'area'")->fetchColumn();
+        } catch (Exception $e) {
+            $hasArea = false;
+        }
+        $selectArea = $hasArea ? ', area' : '';
+        $sql = "SELECT id, asunto, estado, ubicacion, fecha_creacion$selectArea FROM tickets WHERE usuario_id = ? ORDER BY fecha_creacion DESC LIMIT ? OFFSET ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$usuario_id, $limit, $offset]);
+        return $stmt->fetchAll();
+    }
 
 /**
  * Obtener detalle de un ticket
  */
 function getTicketById($ticket_id) {
     $pdo = getDB();
-    $stmt = $pdo->prepare('
-        SELECT 
-            t.*,
-            u.nombre as usuario_nombre,
-            u.email as usuario_email,
-            a.nombre as asignado_nombre
+    // Seleccionar 'area' si existe en la tabla
+    $hasArea = false;
+    try {
+        $hasArea = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . DB_NAME . "' AND TABLE_NAME = 'tickets' AND COLUMN_NAME = 'area'")->fetchColumn();
+    } catch (Exception $e) {
+        $hasArea = false;
+    }
+    $selectArea = $hasArea ? ', t.area' : '';
+    $stmt = $pdo->prepare(
+        "SELECT t.*$selectArea, u.nombre as usuario_nombre, u.email as usuario_email, a.nombre as asignado_nombre
         FROM tickets t
         LEFT JOIN usuarios u ON t.usuario_id = u.id
         LEFT JOIN usuarios a ON t.asignado_a = a.id
-        WHERE t.id = ?
-    ');
+        WHERE t.id = ?"
+    );
     $stmt->execute([$ticket_id]);
     return $stmt->fetch();
 }
@@ -216,14 +242,26 @@ function getTicketById($ticket_id) {
 /**
  * Crear nuevo ticket
  */
-function createTicket($usuario_id, $asunto, $descripcion, $ubicacion) {
+function createTicket($usuario_id, $asunto, $descripcion, $ubicacion, $area = null) {
     $pdo = getDB();
-    $stmt = $pdo->prepare('
-        INSERT INTO tickets (usuario_id, asunto, descripcion, ubicacion)
-        VALUES (?, ?, ?, ?)
-    ');
-    
-    if ($stmt->execute([$usuario_id, $asunto, $descripcion, $ubicacion])) {
+    // Soporta opcionalmente el campo 'area' si la columna existe
+    $params = [$usuario_id, $asunto, $descripcion, $ubicacion];
+    $hasArea = false;
+    try {
+        $hasArea = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . DB_NAME . "' AND TABLE_NAME = 'tickets' AND COLUMN_NAME = 'area'")->fetchColumn();
+    } catch (Exception $e) {
+        $hasArea = false;
+    }
+    if ($hasArea) {
+        $area = func_num_args() >= 5 ? func_get_arg(4) : null;
+        $sql = 'INSERT INTO tickets (usuario_id, asunto, descripcion, ubicacion, area) VALUES (?, ?, ?, ?, ?)';
+        $params[] = $area;
+    } else {
+        $sql = 'INSERT INTO tickets (usuario_id, asunto, descripcion, ubicacion) VALUES (?, ?, ?, ?)';
+    }
+    $stmt = $pdo->prepare($sql);
+
+    if ($stmt->execute($params)) {
         return ['success' => true, 'ticket_id' => $pdo->lastInsertId()];
     } else {
         return ['success' => false, 'error' => 'Error al crear ticket'];
@@ -235,7 +273,7 @@ function createTicket($usuario_id, $asunto, $descripcion, $ubicacion) {
  */
 function updateTicketStatus($ticket_id, $estado, $asignado_a = null) {
     $pdo = getDB();
-    
+
     if ($asignado_a !== null) {
         $stmt = $pdo->prepare('
             UPDATE tickets
@@ -262,7 +300,7 @@ function addResponseToTicket($ticket_id, $usuario_id, $mensaje) {
         INSERT INTO respuestas_ticket (ticket_id, usuario_id, mensaje)
         VALUES (?, ?, ?)
     ');
-    
+
     if ($stmt->execute([$ticket_id, $usuario_id, $mensaje])) {
         // Actualizar fecha de última actualización del ticket
         $pdo->prepare('UPDATE tickets SET fecha_ultima_actualizacion = NOW() WHERE id = ?')->execute([$ticket_id]);
@@ -345,6 +383,30 @@ function isTicketOwnedByUser($ticket_id, $usuario_id) {
     $stmt = $pdo->prepare('SELECT 1 FROM tickets WHERE id = ? AND usuario_id = ?');
     $stmt->execute([$ticket_id, $usuario_id]);
     return $stmt->rowCount() > 0;
+}
+
+/**
+ * Eliminar ticket (y sus respuestas) de forma segura
+ * Solo borra si existe y la llamada se realiza como admin o propietario
+ */
+function deleteTicket($ticket_id) {
+    $pdo = getDB();
+    try {
+        $pdo->beginTransaction();
+        // Borrar respuestas asociadas
+        $stmt = $pdo->prepare('DELETE FROM respuestas_ticket WHERE ticket_id = ?');
+        $stmt->execute([$ticket_id]);
+
+        // Borrar el ticket
+        $stmt = $pdo->prepare('DELETE FROM tickets WHERE id = ?');
+        $result = $stmt->execute([$ticket_id]);
+
+        $pdo->commit();
+        return (bool)$result;
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        return false;
+    }
 }
 
 ?>

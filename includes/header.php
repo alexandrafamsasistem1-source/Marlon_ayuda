@@ -50,6 +50,11 @@ require_once __DIR__ . '/functions.php';
                                     <i class="fas fa-tachometer-alt"></i> Admin
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?php echo BASE_URL; ?>/admin/reportes.php">
+                                    <i class="fas fa-chart-bar"></i> Reportes
+                                </a>
+                            </li>
                         <?php else: ?>
                             <li class="nav-item">
                                 <a class="nav-link" href="<?php echo BASE_URL; ?>/usuario/dashboard.php">

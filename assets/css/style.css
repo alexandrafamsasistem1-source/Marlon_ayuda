@@ -84,7 +84,7 @@ main {
 
 /* Ensure card body text is always readable (avoid invisible white-on-white) */
 .card .card-body, .card .card-title, .card h5, .card p, .card small {
-    color: #222 !important;
+    color: #1b1a1a !important;
 }
 
 /* Stat cards that intentionally use white text should use the .text-white helper */
@@ -176,14 +176,46 @@ main {
 }
 
 .table-dark {
-    background-color: #2d333b;
+    background: linear-gradient(90deg, var(--app-primary), var(--app-primary-dark));
 }
 
-.table-dark th {
-    border-color: #444;
+.table-dark thead th, .table-dark thead td {
+    color: #fff !important;
+    border-color: rgba(255,255,255,0.06) !important;
+    font-weight: 600;
 }
-/* Table dark header readable text */
-.table-dark thead th, .table-dark thead td { color: #fff !important; }
+
+/* Slightly increase header padding for visual balance */
+.table thead th { padding: 0.9rem 1rem; }
+
+/* Clean table style to match reference design */
+.table-clean thead th, .table-clean thead td {
+    background: #ffffff;
+    color: #222 !important;
+    border-bottom: 1px solid #e9ecef;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    font-size: 0.85rem;
+}
+.table-clean {
+    background: #fff;
+    border-radius: 0.6rem;
+    overflow: hidden;
+}
+.table-clean tbody tr {
+    border-bottom: 1px solid #f1f1f1;
+}
+.table-clean tbody tr:last-child { border-bottom: none; }
+.table-clean td, .table-clean th { vertical-align: middle; padding: 1rem; }
+.table-clean .user-cell small { display: block; color: #6c757d; margin-top: 0.35rem; }
+.table-clean .action-btn { width:38px; height:38px; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; }
+.table-clean .badge-status { padding: 0.32rem 0.6rem; border-radius: 0.4rem; font-weight:600; }
+
+/* Specific color for ticket states */
+.badge-status.nuevo { background:#ffc107; color:#212529; }
+.badge-status.proceso { background:#17a2b8; color:#fff; }
+.badge-status.resuelto { background:#28a745; color:#fff; }
+.badge-status.cerrado { background:#6c757d; color:#fff; }
 
 /* Improve contrast for table rows and badges */
 .table tbody td { vertical-align: middle; }

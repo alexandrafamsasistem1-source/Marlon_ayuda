@@ -31,31 +31,13 @@ if ($ticket['usuario_id'] !== $usuario_id && !isAdmin()) {
     die('No tienes permiso para ver este ticket.');
 }
 
-// Obtener respuestas
-$respuestas = getTicketResponses($ticket_id);
-
-// Procesar nueva respuesta (solo usuario propietario)
-$error = '';
-$success = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket['usuario_id'] === $usuario_id) {
-    $mensaje = trim($_POST['mensaje'] ?? '');
-
-    if (empty($mensaje)) {
-        $error = 'El mensaje no puede estar vacío.';
-    } elseif (strlen($mensaje) < 5) {
-        $error = 'El mensaje debe tener al menos 5 caracteres.';
-    } else {
-        $result = addResponseToTicket($ticket_id, $usuario_id, $mensaje);
-        
-        if ($result['success']) {
-            $success = 'Respuesta enviada correctamente.';
-            // Recargar respuestas
-            $respuestas = getTicketResponses($ticket_id);
-            $_POST = [];
-        } else {
-            $error = $result['error'] ?? 'Error al enviar respuesta.';
-        }
+// Preferir área persistida; si no existe, derivar por ubicación
+$area = 'Administración';
+if (!empty($ticket['area'])) {
+    $area = $ticket['area'] === 'Poscosecha' ? 'Poscosecha' : 'Administración';
+} else {
+    if (isset($ticket['ubicacion']) && $ticket['ubicacion'] === 'Finca El Jardín') {
+        $area = 'Poscosecha';
     }
 }
 ?>
@@ -136,77 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket['usuario_id'] === $usuario_
             </div>
         </div>
 
-        <!-- Respuestas -->
-        <div class="card shadow mb-4">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-comments"></i> Respuestas (<?php echo count($respuestas); ?>)
-                </h5>
-            </div>
-            <div class="card-body">
-                <?php if (empty($respuestas)): ?>
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> No hay respuestas aún. El administrador responderá pronto.
-                    </div>
-                <?php else: ?>
-                    <div style="max-height: 400px; overflow-y: auto;">
-                        <?php foreach ($respuestas as $respuesta): ?>
-                            <div class="card mb-3 <?php echo $respuesta['rol'] === 'admin' ? 'border-success' : 'border-secondary'; ?>">
-                                <div class="card-header">
-                                    <strong><?php echo sanitize($respuesta['usuario_nombre']); ?></strong>
-                                    <?php if ($respuesta['rol'] === 'admin'): ?>
-                                        <span class="badge bg-success">Administrador</span>
-                                    <?php endif; ?>
-                                    <small class="text-muted float-end">
-                                        <?php echo date('d/m/Y H:i', strtotime($respuesta['fecha_creacion'])); ?>
-                                    </small>
-                                </div>
-                                <div class="card-body">
-                                    <?php echo nl2br(sanitize($respuesta['mensaje'])); ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <!-- Enviar respuesta (solo usuario propietario) -->
-        <?php if ($ticket['usuario_id'] === $usuario_id && $ticket['estado'] !== 'Cerrado'): ?>
-            <div class="card shadow">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-reply"></i> Agregar Respuesta
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <?php if (!empty($error)): ?>
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-triangle"></i> <?php echo sanitize($error); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if (!empty($success)): ?>
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle"></i> <?php echo sanitize($success); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    <?php endif; ?>
-
-                    <form method="POST" novalidate>
-                        <div class="mb-3">
-                            <textarea class="form-control" name="mensaje" rows="4"
-                                      placeholder="Escribe tu respuesta aquí..."
-                                      required><?php echo isset($_POST['mensaje']) ? sanitize($_POST['mensaje']) : ''; ?></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-info">
-                            <i class="fas fa-paper-plane"></i> Enviar Respuesta
-                        </button>
-                    </form>
-                </div>
-            </div>
-        <?php endif; ?>
+        <!-- Respuestas eliminadas por petición del usuario -->
 
     </div>
 
@@ -220,6 +132,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket['usuario_id'] === $usuario_
                 <div class="mb-3">
                     <small class="text-muted">ID del Ticket</small>
                     <p class="mb-0"><code>#<?php echo $ticket['id']; ?></code></p>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">Área</small>
+                    <p class="mb-0"><strong><?php echo sanitize($area); ?></strong></p>
                 </div>
                 <div class="mb-3">
                     <small class="text-muted">Fecha de Creación</small>

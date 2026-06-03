@@ -15,16 +15,18 @@ $pageTitle = 'Panel de Administración';
 // Parámetros
 $filtro_estado = $_GET['estado'] ?? '';
 $filtro_ubicacion = $_GET['ubicacion'] ?? '';
+$filtro_urgencia = $_GET['urgencia'] ?? '';
 
 // Obtener todos los tickets
 $tickets = getAllTickets(200, 0);
 
-// Aplicar filtros si existen
-if ($filtro_estado || $filtro_ubicacion) {
-    $tickets = array_filter($tickets, function($ticket) use ($filtro_estado, $filtro_ubicacion) {
-        $coindice_estado = !$filtro_estado || $ticket['estado'] === $filtro_estado;
-        $coincide_ubicacion = !$filtro_ubicacion || $ticket['ubicacion'] === $filtro_ubicacion;
-        return $coindice_estado && $coincide_ubicacion;
+// Aplicar filtros si existen (incluye urgencia)
+if ($filtro_estado || $filtro_ubicacion || $filtro_urgencia) {
+    $tickets = array_filter($tickets, function($ticket) use ($filtro_estado, $filtro_ubicacion, $filtro_urgencia) {
+        $coindice_estado = !$filtro_estado || ($ticket['estado'] ?? '') === $filtro_estado;
+        $coincide_ubicacion = !$filtro_ubicacion || ($ticket['ubicacion'] ?? '') === $filtro_ubicacion;
+        $coincide_urgencia = !$filtro_urgencia || (strtolower(($ticket['urgencia'] ?? '')) === strtolower($filtro_urgencia));
+        return $coindice_estado && $coincide_ubicacion && $coincide_urgencia;
     });
 }
 
@@ -36,49 +38,20 @@ $total_tickets = countTotalTickets();
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<div class="row mb-4">
-    <div class="col-md-3 mb-3">
-        <div class="card text-white bg-primary">
-            <div class="card-body">
-                <h5 class="card-title">Total Tickets</h5>
-                <h2><?php echo $total_tickets; ?></h2>
-            </div>
-        </div>
-    </div>
-    <?php foreach ($stats_estado as $stat): ?>
-        <div class="col-md-3 mb-3">
-            <div class="card text-white" style="background-color: 
-                <?php 
-                    switch($stat['estado']) {
-                        case 'Nuevo': echo '#117534'; break;
-                        case 'En proceso': echo '#117534'; break;
-                        case 'Resuelto': echo '#28a745'; break;
-                        case 'Cerrado': echo '#6c757d'; break;
-                    }
-                ?>;">
-                <div class="card-body">
-                    <h5 class="card-title"><?php echo $stat['estado']; ?></h5>
-                    <h2><?php echo $stat['cantidad']; ?></h2>
-                </div>
-            </div>
-        </div>
-    <?php endforeach; ?>
-</div>
+<!-- Estadísticas removidas: se mantienen los filtros y tabla abajo -->
 
-<div class="card shadow mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <div class="card shadow mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
         <h4 class="mb-0">
             <i class="fas fa-table"></i> Todos los Tickets
         </h4>
-        <a href="<?php echo BASE_URL; ?>/admin/reportes.php" class="btn btn-sm btn-info">
-            <i class="fas fa-chart-bar"></i> Ver Reportes
-        </a>
+        <!-- Reportes button removed -->
     </div>
     <div class="card-body">
 
-        <!-- Filtros -->
+        <!-- Filtros: Estado / Ubicación / Urgencia -->
         <div class="row mb-3">
-            <div class="col-md-6">
+            <div class="col-12">
                 <form method="GET" class="d-flex gap-2">
                     <select class="form-select" name="estado" onchange="this.form.submit()">
                         <option value="">-- Filtrar por Estado --</option>
@@ -87,14 +60,18 @@ $total_tickets = countTotalTickets();
                         <option value="Resuelto" <?php echo $filtro_estado === 'Resuelto' ? 'selected' : ''; ?>>Resuelto</option>
                         <option value="Cerrado" <?php echo $filtro_estado === 'Cerrado' ? 'selected' : ''; ?>>Cerrado</option>
                     </select>
-                </form>
-            </div>
-            <div class="col-md-6">
-                <form method="GET" class="d-flex gap-2">
+
                     <select class="form-select" name="ubicacion" onchange="this.form.submit()">
                         <option value="">-- Filtrar por Ubicación --</option>
                         <option value="Finca El Jardín" <?php echo $filtro_ubicacion === 'Finca El Jardín' ? 'selected' : ''; ?>>Finca El Jardín</option>
                         <option value="San Ignacio" <?php echo $filtro_ubicacion === 'San Ignacio' ? 'selected' : ''; ?>>San Ignacio</option>
+                    </select>
+
+                    <select class="form-select" name="urgencia" onchange="this.form.submit()">
+                        <option value="">-- Filtrar por Urgencia --</option>
+                        <option value="Alta" <?php echo strtolower($filtro_urgencia) === 'alta' ? 'selected' : ''; ?>>Alta</option>
+                        <option value="Media" <?php echo strtolower($filtro_urgencia) === 'media' ? 'selected' : ''; ?>>Media</option>
+                        <option value="Baja" <?php echo strtolower($filtro_urgencia) === 'baja' ? 'selected' : ''; ?>>Baja</option>
                     </select>
                 </form>
             </div>
@@ -106,8 +83,8 @@ $total_tickets = countTotalTickets();
             </div>
         <?php else: ?>
             <div class="table-responsive">
-                <table class="table table-hover table-striped">
-                    <thead class="table-dark">
+                <table class="table table-clean table-hover">
+                    <thead>
                         <tr>
                             <th>ID</th>
                             <th>Usuario</th>
@@ -115,6 +92,7 @@ $total_tickets = countTotalTickets();
                             <th>Ubicación</th>
                             <th>Estado</th>
                             <th>Asignado a</th>
+                            <th>Urgencia</th>
                             <th>Fecha</th>
                             <th>Acciones</th>
                         </tr>
@@ -126,8 +104,8 @@ $total_tickets = countTotalTickets();
                                     <span class="badge bg-secondary">#<?php echo $ticket['id']; ?></span>
                                 </td>
                                 <td>
-                                    <strong><?php echo sanitize($ticket['usuario_nombre']); ?></strong><br>
-                                    <small class="text-muted"><?php echo sanitize($ticket['usuario_email']); ?></small>
+                                    <strong><?php echo sanitize($ticket['usuario_nombre']); ?></strong>
+                                    <small><?php echo sanitize($ticket['usuario_email']); ?></small>
                                 </td>
                                 <td>
                                     <?php echo sanitize(substr($ticket['asunto'], 0, 30)); ?>
@@ -165,6 +143,14 @@ $total_tickets = countTotalTickets();
                                     <?php else: ?>
                                         <small class="text-muted">No asignado</small>
                                     <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php $urg = $ticket['urgencia'] ?? 'Media';
+                                    $urgClass = 'badge bg-warning text-dark';
+                                    if (strtolower($urg) === 'alta') $urgClass = 'badge bg-danger';
+                                    if (strtolower($urg) === 'baja') $urgClass = 'badge bg-success';
+                                    ?>
+                                    <span class="<?php echo $urgClass; ?>"><?php echo sanitize(ucfirst($urg)); ?></span>
                                 </td>
                                 <td>
                                     <small class="text-muted">
