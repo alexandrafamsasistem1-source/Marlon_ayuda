@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     asunto VARCHAR(255) NOT NULL,
     descripcion LONGTEXT NOT NULL,
     ubicacion ENUM('Finca El Jardín', 'San Ignacio') NOT NULL,
+    area ENUM('Administracion','Poscosecha') NOT NULL DEFAULT 'Administracion',
     estado ENUM('Nuevo', 'En proceso', 'Resuelto', 'Cerrado') NOT NULL DEFAULT 'Nuevo',
     asignado_a INT,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -32,6 +33,9 @@ CREATE TABLE IF NOT EXISTS tickets (
     INDEX idx_estado (estado),
     INDEX idx_ubicacion (ubicacion)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Si ya existe la tabla y falta la columna 'area', se puede agregar con la siguiente instrucción (MySQL 8+):
+-- ALTER TABLE tickets ADD COLUMN IF NOT EXISTS area ENUM('Administracion','Poscosecha') NOT NULL DEFAULT 'Administracion';
 
 -- Tabla de respuestas en tickets
 CREATE TABLE IF NOT EXISTS respuestas_ticket (
@@ -44,6 +48,21 @@ CREATE TABLE IF NOT EXISTS respuestas_ticket (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
     INDEX idx_ticket (ticket_id),
     INDEX idx_usuario (usuario_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla de notificaciones internas para admins
+CREATE TABLE IF NOT EXISTS notificaciones (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    usuario_id INT NOT NULL,
+    tipo VARCHAR(50) NOT NULL DEFAULT 'ticket_nuevo',
+    mensaje TEXT NOT NULL,
+    referencia_id INT NULL,
+    leida TINYINT(1) NOT NULL DEFAULT 0,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_lectura TIMESTAMP NULL,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_usuario_leida (usuario_id, leida),
+    INDEX idx_fecha_creacion (fecha_creacion)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Insertar usuario admin inicial (contraseña: admin123)

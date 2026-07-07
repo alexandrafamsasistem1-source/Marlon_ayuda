@@ -3,7 +3,9 @@
  * Crear nuevo ticket
  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
@@ -28,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $gmail = trim($_POST['gmail'] ?? '');
     $asunto = trim($_POST['asunto'] ?? '');
     $descripcion = trim($_POST['descripcion'] ?? '');
+    $area = trim($_POST['area'] ?? 'Administracion');
     $ubicacion = trim($_POST['ubicacion'] ?? '');
 
     // Validaciones
@@ -47,9 +50,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'La descripción debe tener al menos 10 caracteres.';
     } elseif (!in_array($ubicacion, ['Finca El Jardín', 'San Ignacio'])) {
         $error = 'Debes seleccionar una ubicación válida.';
+    } elseif (!in_array($area, ['Administracion', 'Poscosecha'])) {
+        $error = 'Debes seleccionar un área válida.';
     } else {
         // Crear ticket
-        $result = createTicket($usuario_id, $asunto, $descripcion, $ubicacion);
+        $result = createTicket($usuario_id, $asunto, $descripcion, $ubicacion, $area);
 
         if ($result['success']) {
             echo '<script>alert("¡Ticket creado exitosamente!"); window.location.href="' . BASE_URL . '/usuario/dashboard.php";</script>';
@@ -127,6 +132,17 @@ $usuario = getUserById($usuario_id);
                             <option value="San Ignacio" <?php echo (isset($_POST['ubicacion']) && $_POST['ubicacion'] === 'San Ignacio') ? 'selected' : ''; ?>>
                                 San Ignacio
                             </option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="area" class="form-label">
+                            <i class="fas fa-layer-group"></i> Área:
+                        </label>
+                        <select class="form-select" id="area" name="area" required>
+                            <option value="">-- Selecciona un área --</option>
+                            <option value="Administracion" <?php echo (isset($_POST['area']) && $_POST['area'] === 'Administracion') ? 'selected' : ''; ?>>Administración</option>
+                            <option value="Poscosecha" <?php echo (isset($_POST['area']) && $_POST['area'] === 'Poscosecha') ? 'selected' : ''; ?>>Poscosecha</option>
                         </select>
                     </div>
 

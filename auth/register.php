@@ -3,19 +3,14 @@
  * Página de Registro
  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
-// Si ya está logueado, mostrar dashboard
-if (isLoggedIn()) {
-    if (isAdmin()) {
-        include __DIR__ . '/../admin/dashboard.php';
-    } else {
-        include __DIR__ . '/../usuario/dashboard.php';
-    }
-    exit();
-}
+// Si ya está logueado, redirigir
+requireLogout();
 
 $pageTitle = 'Registro';
 
@@ -62,12 +57,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
+<!-- Inline critical auth styles (override cached CSS) -->
+<style>
+:root{--primary:#0b6b47;--primary-dark:#085033;--accent:#c9b07a}
+.navbar{background:#fff !important;box-shadow:0 2px 6px rgba(0,0,0,0.06)!important}
+.navbar-brand{background:var(--primary);color:#fff !important;padding:.45rem .9rem;border-radius:.4rem;display:inline-block}
+.card{border-radius:.6rem}
+.card .card-body{padding:2rem}
+.card-title .fa-user-plus{color:var(--primary)}
+.btn-primary{background:var(--primary)!important;border-color:var(--primary)!important}
+.btn-primary:hover{background:var(--primary-dark)!important;border-color:var(--primary-dark)!important}
+body{background:#f7f8f6}
+footer{background:#fff;color:#666}
+</style>
+
+<div class="auth-wrapper">
 <div class="row justify-content-center mb-5">
     <div class="col-md-6 col-lg-5">
         <div class="card shadow-lg">
             <div class="card-body p-5">
-                <h2 class="card-title text-center mb-1">
-                    <i class="fas fa-user-plus text-primary"></i>
+                    <div class="auth-card-hero text-center mb-4">
+                        <img src="<?php echo BASE_URL; ?>/assets/img/logo_6.png" alt="Alex app support" style="max-width: 180px; width: 100%; height: auto;">
+                    </div>
                 </h2>
                 <h3 class="card-title text-center mb-4">Crear Cuenta</h3>
 
@@ -121,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="text-center">
                     <p class="text-muted mb-0">
                         ¿Ya tienes cuenta?
-                        <a href="/auth/login.php" class="text-decoration-none">
+                        <a href="<?php echo BASE_URL; ?>/auth/login.php" class="text-decoration-none">
                             Inicia sesión aquí
                         </a>
                     </p>
@@ -132,3 +143,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+</div>

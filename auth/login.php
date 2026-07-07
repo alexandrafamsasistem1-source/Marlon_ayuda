@@ -3,7 +3,9 @@
  * Página de Login
  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
@@ -58,10 +60,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['rol'] = $usuario['rol'];
 
                 // Redirigir al dashboard correspondiente
-                if ($usuario['rol'] === 'admin') {
-                    header('Location: /admin/dashboard.php');
+                if (in_array($usuario['rol'], ['admin', 'superadmin'], true)) {
+                    header('Location: ' . BASE_URL . '/admin/dashboard.php');
                 } else {
-                    header('Location: /usuario/dashboard.php');
+                    header('Location: ' . BASE_URL . '/usuario/dashboard.php');
                 }
                 exit();
             }
@@ -72,13 +74,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
+<!-- Inline critical auth styles (override cached CSS) -->
+<style>
+:root{--primary:#0b6b47;--primary-dark:#085033;--accent:#c9b07a}
+.navbar{background:#fff !important;box-shadow:0 2px 6px rgba(0,0,0,0.06)!important}
+.navbar-brand{background:var(--primary);color:#fff !important;padding:.45rem .9rem;border-radius:.4rem;display:inline-block}
+.card{border-radius:.6rem}
+.card .card-body{padding:2rem}
+.card-title .fa-ticket-alt{color:var(--primary)}
+.btn-primary{background:var(--primary)!important;border-color:var(--primary)!important}
+.btn-primary:hover{background:var(--primary-dark)!important;border-color:var(--primary-dark)!important}
+body{background:#f7f8f6}
+footer{background:#fff;color:#666}
+.auth-card-hero{margin-bottom:1.25rem;padding:0.75rem 0}
+.auth-card-hero img{display:block;max-width:360px;width:100%;height:auto;margin:0 auto;object-fit:contain}
+</style>
+
+<div class="auth-wrapper">
 <div class="row justify-content-center mb-5">
     <div class="col-md-6 col-lg-5">
         <div class="card shadow-lg">
             <div class="card-body p-5">
-                <h2 class="card-title text-center mb-1">
-                    <i class="fas fa-ticket-alt text-primary"></i>
-                </h2>
+                <div class="auth-card-hero text-center">
+                    <img src="<?php echo BASE_URL; ?>/assets/img/logo_6.png" alt="Alex app support">
+                </div>
                 <h3 class="card-title text-center mb-4">Iniciar Sesión</h3>
 
                 <!-- Mensaje de éxito -->
@@ -118,21 +137,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="text-center">
                     <p class="text-muted mb-0">
                         ¿No tienes cuenta? 
-                        <a href="/auth/register.php" class="text-decoration-none">
+                        <a href="<?php echo BASE_URL; ?>/auth/register.php" class="text-decoration-none">
                             Registrarse aquí
                         </a>
                     </p>
                 </div>
 
-                <!-- Credenciales de prueba -->
-                <div class="alert alert-info mt-4 small">
-                    <strong>Pruebas:</strong><br>
-                    <strong>Admin:</strong> admin@tickets.local / admin123<br>
-                    <strong>Usuario:</strong> usuario@tickets.local / usuario123
-                </div>
+                <!-- (Credenciales de prueba eliminadas) -->
             </div>
         </div>
     </div>
 </div>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+</div>

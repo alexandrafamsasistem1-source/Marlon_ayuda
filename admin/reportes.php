@@ -3,7 +3,9 @@
  * Reportes - Estadísticas y gráficas
  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
@@ -19,172 +21,104 @@ if (!isAdmin()) {
 
 $pageTitle = 'Reportes';
 
-// Obtener estadísticas
-$stats_estado = countTicketsByStatus();
-$stats_ubicacion = countTicketsByLocation();
-$total_tickets = countTotalTickets();
-$tickets = getAllTickets(500, 0);
-
-// Calcular promedios
-$promedio_resueltos = 0;
-$promedio_en_proceso = 0;
-$promedio_cerrados = 0;
-
-foreach ($stats_estado as $stat) {
-    if ($stat['estado'] === 'Resuelto') $promedio_resueltos = $stat['cantidad'];
-    if ($stat['estado'] === 'En proceso') $promedio_en_proceso = $stat['cantidad'];
-    if ($stat['estado'] === 'Cerrado') $promedio_cerrados = $stat['cantidad'];
+// Selector de mes (formato YYYY-MM)
+$selectedMonth = $_GET['month'] ?? date('Y-m');
+// Validar formato
+if (!preg_match('/^\d{4}-\d{2}$/', $selectedMonth)) {
+    $selectedMonth = date('Y-m');
 }
 
-// Tasa de resolución
-$tasa_resolucion = $total_tickets > 0 ? round(($promedio_resueltos / $total_tickets) * 100, 1) : 0;
+// Calcular rango de fechas para el mes seleccionado
+$start = new DateTime($selectedMonth . '-01 00:00:00');
+$end = clone $start;
+$end->modify('last day of this month')->setTime(23,59,59);
+
+// Obtener tickets del mes
+$pdo = getDB();
+$stmt = $pdo->prepare(
+    'SELECT t.id, t.asunto, t.estado, t.ubicacion, t.fecha_creacion, u.nombre as usuario_nombre, u.email as usuario_email
+     FROM tickets t
+     LEFT JOIN usuarios u ON t.usuario_id = u.id
+     WHERE t.fecha_creacion BETWEEN ? AND ?
+     ORDER BY t.fecha_creacion DESC'
+);
+$stmt->execute([$start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')]);
+$tickets = $stmt->fetchAll();
+
+// Exportar a CSV (compatible con Excel) si se solicita
+if (isset($_GET['export']) && $_GET['export'] === 'excel') {
+    $filename = 'reportes_' . $start->format('Y_m') . '.csv';
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    // BOM para Excel con UTF-8
+    echo "\xEF\xBB\xBF";
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['ID', 'Usuario', 'Email', 'Asunto', 'Estado', 'Ubicación', 'Fecha Creación']);
+    foreach ($tickets as $row) {
+        fputcsv($out, [
+            $row['id'],
+            $row['usuario_nombre'],
+            $row['usuario_email'],
+            $row['asunto'],
+            $row['estado'],
+            $row['ubicacion'],
+            $row['fecha_creacion']
+        ]);
+    }
+    fclose($out);
+    exit();
+}
 ?>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<h2 class="mb-4">
-    <i class="fas fa-chart-bar"></i> Reportes y Estadísticas
-</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Informe mensual: <?php echo htmlspecialchars($start->format('F Y'), ENT_QUOTES, 'UTF-8'); ?></h4>
+    <div>
+        <form method="GET" class="d-inline-block me-2">
+            <label for="month" class="visually-hidden">Mes</label>
+            <input type="month" id="month" name="month" value="<?php echo $selectedMonth; ?>" class="form-control d-inline-block" style="width:160px; display:inline-block;">
+            <button class="btn btn-primary ms-2" type="submit">Mostrar</button>
+        </form>
+        <a href="?month=<?php echo $selectedMonth; ?>&export=excel" class="btn btn-success">Exportar a Excel</a>
+    </div>
+</div>
 
-<!-- KPIs Principales -->
-<div class="row mb-4">
-    <div class="col-md-3 mb-3">
-        <div class="card text-white bg-primary">
+<?php
+// Resumen rápido por estado
+$total_month = count($tickets);
+$counts_by_state = [];
+foreach ($tickets as $t) {
+    $s = $t['estado'] ?? 'Sin estado';
+    if (!isset($counts_by_state[$s])) $counts_by_state[$s] = 0;
+    $counts_by_state[$s]++;
+}
+?>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card">
             <div class="card-body">
-                <h6 class="card-title text-uppercase">Total Tickets</h6>
-                <h2><?php echo $total_tickets; ?></h2>
-                <small>Todos los tickets del sistema</small>
+                <h6 class="card-title">Total tickets este mes</h6>
+                <h3><?php echo $total_month; ?></h3>
             </div>
         </div>
     </div>
-    <div class="col-md-3 mb-3">
-        <div class="card text-white bg-success">
+    <div class="col-md-8">
+        <div class="card">
             <div class="card-body">
-                <h6 class="card-title text-uppercase">Resueltos</h6>
-                <h2><?php echo $promedio_resueltos; ?></h2>
-                <small><?php echo $tasa_resolucion; ?>% de efectividad</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card text-white bg-info">
-            <div class="card-body">
-                <h6 class="card-title text-uppercase">En Proceso</h6>
-                <h2><?php echo $promedio_en_proceso; ?></h2>
-                <small>Pendientes de resolución</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card text-white bg-warning">
-            <div class="card-body">
-                <h6 class="card-title text-uppercase">Nuevos</h6>
-                <h2><?php echo isset($stats_estado[0]) && $stats_estado[0]['estado'] === 'Nuevo' ? $stats_estado[0]['cantidad'] : 0; ?></h2>
-                <small>Sin procesar</small>
+                <h6 class="card-title">Por estado</h6>
+                <?php foreach ($counts_by_state as $state => $c): ?>
+                    <span class="badge bg-secondary me-2"><?php echo sanitize($state); ?>: <?php echo $c; ?></span>
+                <?php endforeach; ?>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Gráficas y Estadísticas -->
-<div class="row">
-    <!-- Estado de Tickets -->
-    <div class="col-lg-6 mb-4">
-        <div class="card shadow">
-            <div class="card-header bg-dark text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-chart-pie"></i> Tickets por Estado
-                </h5>
-            </div>
-            <div class="card-body">
-                <div style="position: relative; height: 300px;">
-                    <canvas id="chartEstado"></canvas>
-                </div>
-                <table class="table table-sm mt-3">
-                    <thead>
-                        <tr>
-                            <th>Estado</th>
-                            <th>Cantidad</th>
-                            <th>Porcentaje</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($stats_estado as $stat): ?>
-                            <tr>
-                                <td>
-                                    <?php 
-                                    $badgeClass = '';
-                                    switch($stat['estado']) {
-                                        case 'Nuevo':
-                                            $badgeClass = 'badge bg-warning text-dark';
-                                            break;
-                                        case 'En proceso':
-                                            $badgeClass = 'badge bg-info';
-                                            break;
-                                        case 'Resuelto':
-                                            $badgeClass = 'badge bg-success';
-                                            break;
-                                        case 'Cerrado':
-                                            $badgeClass = 'badge bg-secondary';
-                                            break;
-                                    }
-                                    ?>
-                                    <span class="<?php echo $badgeClass; ?>"><?php echo $stat['estado']; ?></span>
-                                </td>
-                                <td><strong><?php echo $stat['cantidad']; ?></strong></td>
-                                <td><?php echo round(($stat['cantidad'] / $total_tickets) * 100, 1); ?>%</td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Ubicación de Tickets -->
-    <div class="col-lg-6 mb-4">
-        <div class="card shadow">
-            <div class="card-header bg-dark text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-chart-bar"></i> Tickets por Ubicación
-                </h5>
-            </div>
-            <div class="card-body">
-                <div style="position: relative; height: 300px;">
-                    <canvas id="chartUbicacion"></canvas>
-                </div>
-                <table class="table table-sm mt-3">
-                    <thead>
-                        <tr>
-                            <th>Ubicación</th>
-                            <th>Cantidad</th>
-                            <th>Porcentaje</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($stats_ubicacion as $stat): ?>
-                            <tr>
-                                <td>
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    <strong><?php echo sanitize($stat['ubicacion']); ?></strong>
-                                </td>
-                                <td><strong><?php echo $stat['cantidad']; ?></strong></td>
-                                <td><?php echo round(($stat['cantidad'] / $total_tickets) * 100, 1); ?>%</td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Tabla de Tickets Recientes -->
 <div class="card shadow">
     <div class="card-header bg-dark text-white">
-        <h5 class="mb-0">
-            <i class="fas fa-history"></i> Tickets Recientes
-        </h5>
+        <h5 class="mb-0">Detalle de tickets del mes</h5>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -193,6 +127,7 @@ $tasa_resolucion = $total_tickets > 0 ? round(($promedio_resueltos / $total_tick
                     <tr>
                         <th>ID</th>
                         <th>Usuario</th>
+                        <th>Email</th>
                         <th>Asunto</th>
                         <th>Estado</th>
                         <th>Ubicación</th>
@@ -200,105 +135,25 @@ $tasa_resolucion = $total_tickets > 0 ? round(($promedio_resueltos / $total_tick
                     </tr>
                 </thead>
                 <tbody>
-                    <?php 
-                    $tickets_recientes = array_slice($tickets, 0, 10);
-                    foreach ($tickets_recientes as $ticket): 
-                    ?>
-                        <tr>
-                            <td><code>#<?php echo $ticket['id']; ?></code></td>
-                            <td>
-                                <small><?php echo sanitize($ticket['usuario_nombre']); ?></small>
-                            </td>
-                            <td><?php echo sanitize(substr($ticket['asunto'], 0, 30)); ?></td>
-                            <td>
-                                <?php 
-                                $estadoClass = '';
-                                switch($ticket['estado']) {
-                                    case 'Nuevo':
-                                        $estadoClass = 'badge bg-warning text-dark';
-                                        break;
-                                    case 'En proceso':
-                                        $estadoClass = 'badge bg-info';
-                                        break;
-                                    case 'Resuelto':
-                                        $estadoClass = 'badge bg-success';
-                                        break;
-                                    case 'Cerrado':
-                                        $estadoClass = 'badge bg-secondary';
-                                        break;
-                                }
-                                ?>
-                                <span class="<?php echo $estadoClass; ?>"><?php echo $ticket['estado']; ?></span>
-                            </td>
-                            <td><small><?php echo sanitize($ticket['ubicacion']); ?></small></td>
-                            <td><small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($ticket['fecha_creacion'])); ?></small></td>
-                        </tr>
-                    <?php endforeach; ?>
+                    <?php if (empty($tickets)): ?>
+                        <tr><td colspan="7" class="text-center text-muted">No se encontraron tickets en este mes.</td></tr>
+                    <?php else: ?>
+                        <?php foreach ($tickets as $ticket): ?>
+                            <tr>
+                                <td><code>#<?php echo $ticket['id']; ?></code></td>
+                                <td><?php echo sanitize($ticket['usuario_nombre']); ?></td>
+                                <td><?php echo sanitize($ticket['usuario_email']); ?></td>
+                                <td><?php echo sanitize(mb_substr($ticket['asunto'], 0, 80)); ?></td>
+                                <td><span class="badge bg-info"><?php echo sanitize($ticket['estado']); ?></span></td>
+                                <td><?php echo sanitize($ticket['ubicacion']); ?></td>
+                                <td><small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($ticket['fecha_creacion'])); ?></small></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
-
-<!-- Chart.js para gráficas -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-<script>
-    // Configurar datos para gráfica de estado
-    const estadoLabels = [<?php echo implode(',', array_map(function($s) { return '"' . $s['estado'] . '"'; }, $stats_estado)); ?>];
-    const estadoData = [<?php echo implode(',', array_map(function($s) { return $s['cantidad']; }, $stats_estado)); ?>];
-    
-    // Configurar datos para gráfica de ubicación
-    const ubicacionLabels = [<?php echo implode(',', array_map(function($s) { return '"' . $s['ubicacion'] . '"'; }, $stats_ubicacion)); ?>];
-    const ubicacionData = [<?php echo implode(',', array_map(function($s) { return $s['cantidad']; }, $stats_ubicacion)); ?>];
-
-    // Gráfica de Estado (Pie)
-    const ctxEstado = document.getElementById('chartEstado').getContext('2d');
-    new Chart(ctxEstado, {
-        type: 'pie',
-        data: {
-            labels: estadoLabels,
-            datasets: [{
-                label: 'Tickets por Estado',
-                data: estadoData,
-                backgroundColor: ['#ffc107', '#17a2b8', '#28a745', '#6c757d'],
-                borderColor: '#fff',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'bottom' }
-            }
-        }
-    });
-
-    // Gráfica de Ubicación (Bar)
-    const ctxUbicacion = document.getElementById('chartUbicacion').getContext('2d');
-    new Chart(ctxUbicacion, {
-        type: 'bar',
-        data: {
-            labels: ubicacionLabels,
-            datasets: [{
-                label: 'Tickets por Ubicación',
-                data: ubicacionData,
-                backgroundColor: ['#007bff', '#ff6b6b'],
-                borderColor: ['#0056b3', '#ff0000'],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true }
-            },
-            plugins: {
-                legend: { display: false }
-            }
-        }
-    });
-</script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
