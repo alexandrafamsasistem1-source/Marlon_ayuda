@@ -30,6 +30,20 @@ define('DB_PASS', '');
 define('DB_NAME', 'tickets_ayuda');
 define('DB_CHARSET', 'utf8mb4');
 
+// Configuración de correo electrónico
+// Puedes sobrescribir estos valores en el servidor con variables de entorno o editando aquí.
+define('MAIL_ENABLED', getenv('MAIL_ENABLED') !== false ? filter_var(getenv('MAIL_ENABLED'), FILTER_VALIDATE_BOOLEAN) : true);
+define('MAIL_DRIVER', getenv('MAIL_DRIVER') ?: 'mail');
+define('MAIL_FROM_ADDRESS', getenv('MAIL_FROM_ADDRESS') ?: 'no-reply@tickets.local');
+define('MAIL_FROM_NAME', getenv('MAIL_FROM_NAME') ?: 'Sistema de Tickets');
+define('MAIL_ADMIN_OVERRIDE', getenv('MAIL_ADMIN_OVERRIDE') ?: '');
+define('MAIL_SMTP_HOST', getenv('MAIL_SMTP_HOST') ?: '');
+define('MAIL_SMTP_PORT', getenv('MAIL_SMTP_PORT') ?: 587);
+define('MAIL_SMTP_USERNAME', getenv('MAIL_SMTP_USERNAME') ?: '');
+define('MAIL_SMTP_PASSWORD', getenv('MAIL_SMTP_PASSWORD') ?: '');
+define('MAIL_SMTP_ENCRYPTION', getenv('MAIL_SMTP_ENCRYPTION') ?: 'tls');
+define('MAIL_SMTP_AUTH', getenv('MAIL_SMTP_AUTH') !== false ? filter_var(getenv('MAIL_SMTP_AUTH'), FILTER_VALIDATE_BOOLEAN) : true);
+
 // Crear conexión PDO
 try {
     $pdo = new PDO(

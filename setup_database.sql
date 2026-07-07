@@ -50,6 +50,21 @@ CREATE TABLE IF NOT EXISTS respuestas_ticket (
     INDEX idx_usuario (usuario_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tabla de notificaciones internas para admins
+CREATE TABLE IF NOT EXISTS notificaciones (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    usuario_id INT NOT NULL,
+    tipo VARCHAR(50) NOT NULL DEFAULT 'ticket_nuevo',
+    mensaje TEXT NOT NULL,
+    referencia_id INT NULL,
+    leida TINYINT(1) NOT NULL DEFAULT 0,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_lectura TIMESTAMP NULL,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_usuario_leida (usuario_id, leida),
+    INDEX idx_fecha_creacion (fecha_creacion)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Insertar usuario admin inicial (contraseña: admin123)
 -- Hash: $2y$10$YKVgKEKSTlq8oJfKDY7C2.YXvJV.6W4eWFCWr5Ux1hb/qQ3WfPSZu
 INSERT INTO usuarios (nombre, email, password, rol) 

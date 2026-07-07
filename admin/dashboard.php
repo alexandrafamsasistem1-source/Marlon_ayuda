@@ -3,12 +3,18 @@
  * Dashboard Admin - Ver todos los tickets
  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 // Verificar que sea admin
 requireAdmin();
+
+if (isset($_GET['marcar_leidas'])) {
+    markNotificationsAsRead(getUserId());
+}
 
 $pageTitle = 'Panel de Administración';
 
@@ -34,13 +40,20 @@ if ($filtro_estado || $filtro_ubicacion || $filtro_urgencia) {
 $stats_estado = countTicketsByStatus();
 $stats_ubicacion = countTicketsByLocation();
 $total_tickets = countTotalTickets();
+$notificaciones_pendientes = getUnreadNotificationsCount(getUserId());
+$notificaciones_recientes = getNotificationsForUser(getUserId(), 10);
 ?>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<!-- Estadísticas removidas: se mantienen los filtros y tabla abajo -->
+<style>
+/* Color personalizado para estado "Nuevo" */
+.badge.bg-nuevo{background-color:#c8d6bd;color:#16321f}
+</style>
 
-            <div class="card shadow mb-4">
+<!-- Notificaciones movidas al dropdown de la cabecera. -->
+
+<div class="card shadow mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h4 class="mb-0">
             <i class="fas fa-table"></i> Todos los Tickets
@@ -120,7 +133,7 @@ $total_tickets = countTotalTickets();
                                     $estadoClass = '';
                                     switch($ticket['estado']) {
                                         case 'Nuevo':
-                                            $estadoClass = 'badge bg-warning text-dark';
+                                            $estadoClass = 'badge bg-nuevo';
                                             break;
                                         case 'En proceso':
                                             $estadoClass = 'badge bg-info';

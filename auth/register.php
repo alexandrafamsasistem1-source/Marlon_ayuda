@@ -3,7 +3,9 @@
  * Página de Registro
  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
@@ -74,8 +76,9 @@ footer{background:#fff;color:#666}
     <div class="col-md-6 col-lg-5">
         <div class="card shadow-lg">
             <div class="card-body p-5">
-                <h2 class="card-title text-center mb-1">
-                    <i class="fas fa-user-plus text-primary"></i>
+                    <div class="auth-card-hero text-center mb-4">
+                        <img src="<?php echo BASE_URL; ?>/assets/img/logo_6.png" alt="Alex app support" style="max-width: 180px; width: 100%; height: auto;">
+                    </div>
                 </h2>
                 <h3 class="card-title text-center mb-4">Crear Cuenta</h3>
 

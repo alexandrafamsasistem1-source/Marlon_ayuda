@@ -4,7 +4,9 @@
  * Muestra lista de tickets del usuario actual y opción crear nuevo
  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 

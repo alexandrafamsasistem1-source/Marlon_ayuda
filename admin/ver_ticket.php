@@ -3,7 +3,9 @@
  * Admin - Ver detalle de ticket y responder
  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
@@ -53,8 +55,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         } elseif (!in_array($nuevo_estado, ['Nuevo', 'En proceso', 'Resuelto', 'Cerrado'])) {
             $error = 'Estado inválido.';
         } else {
-            $asignado_id = ($asignado_a && $asignado_a !== 'ninguno') ? $asignado_a : null;
-            if (updateTicketStatus($ticket_id, $nuevo_estado, $asignado_id)) {
+            $asignado_id = null;
+            if (isSuperAdmin() && $asignado_a && $asignado_a !== 'ninguno') {
+                $asignado_id = $asignado_a;
+            } elseif ($asignado_a && $asignado_a !== 'ninguno') {
+                $error = 'Solo el superadmin puede asignar tickets.';
+            }
+
+            if (empty($error) && updateTicketStatus($ticket_id, $nuevo_estado, $asignado_id)) {
                 // Intentar guardar urgencia si viene
                 if ($urgencia !== null) {
                     try {
@@ -251,18 +259,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         </select>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="asignado_a" class="form-label">Asignar a:</label>
-                        <select class="form-select" id="asignado_a" name="asignado_a">
-                            <option value="ninguno">-- Sin asignar --</option>
-                            <?php foreach ($admins as $admin): ?>
-                                <option value="<?php echo $admin['id']; ?>" 
-                                    <?php echo ($ticket['asignado_a'] && $ticket['asignado_a'] === $admin['id']) ? 'selected' : ''; ?>>
-                                    <?php echo sanitize($admin['nombre']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+                    <?php if (isSuperAdmin()): ?>
+                        <div class="mb-3">
+                            <label for="asignado_a" class="form-label">Asignar a:</label>
+                            <select class="form-select" id="asignado_a" name="asignado_a">
+                                <option value="ninguno">-- Sin asignar --</option>
+                                <?php foreach ($admins as $admin): ?>
+                                    <option value="<?php echo $admin['id']; ?>" 
+                                        <?php echo ($ticket['asignado_a'] && $ticket['asignado_a'] === $admin['id']) ? 'selected' : ''; ?>>
+                                        <?php echo sanitize($admin['nombre']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    <?php endif; ?>
 
                     <div class="mb-3">
                         <label for="urgencia" class="form-label">Urgencia / Prioridad:</label>

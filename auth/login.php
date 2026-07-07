@@ -3,7 +3,9 @@
  * Página de Login
  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
@@ -58,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['rol'] = $usuario['rol'];
 
                 // Redirigir al dashboard correspondiente
-                if ($usuario['rol'] === 'admin') {
+                if (in_array($usuario['rol'], ['admin', 'superadmin'], true)) {
                     header('Location: ' . BASE_URL . '/admin/dashboard.php');
                 } else {
                     header('Location: ' . BASE_URL . '/usuario/dashboard.php');
@@ -84,6 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 .btn-primary:hover{background:var(--primary-dark)!important;border-color:var(--primary-dark)!important}
 body{background:#f7f8f6}
 footer{background:#fff;color:#666}
+.auth-card-hero{margin-bottom:1.25rem;padding:0.75rem 0}
+.auth-card-hero img{display:block;max-width:360px;width:100%;height:auto;margin:0 auto;object-fit:contain}
 </style>
 
 <div class="auth-wrapper">
@@ -91,9 +95,9 @@ footer{background:#fff;color:#666}
     <div class="col-md-6 col-lg-5">
         <div class="card shadow-lg">
             <div class="card-body p-5">
-                <h2 class="card-title text-center mb-1">
-                    <i class="fas fa-ticket-alt text-primary"></i>
-                </h2>
+                <div class="auth-card-hero text-center">
+                    <img src="<?php echo BASE_URL; ?>/assets/img/logo_6.png" alt="Alex app support">
+                </div>
                 <h3 class="card-title text-center mb-4">Iniciar Sesión</h3>
 
                 <!-- Mensaje de éxito -->
