@@ -396,6 +396,85 @@ function markNotificationsAsRead($usuario_id = null) {
 }
 
 /**
+ * Enviar un correo usando la configuración definida para mail o SMTP.
+ */
+function sendMailMessage($to, $subject, $message, $replyToEmail = null, $fromAddress = null, $fromName = null) {
+    if (empty($to)) {
+        return false;
+    }
+
+    if (!is_array($to)) {
+        $to = [$to];
+    }
+
+    $fromAddress = $fromAddress ?: (defined('MAIL_FROM_ADDRESS') ? MAIL_FROM_ADDRESS : 'no-reply@tickets.local');
+    $fromName = $fromName ?: (defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'Sistema de Tickets');
+    $replyToEmail = $replyToEmail ?: $fromAddress;
+
+    $driver = strtolower((string)(defined('MAIL_DRIVER') ? MAIL_DRIVER : 'mail'));
+    $useSmtp = $driver === 'smtp' && defined('MAIL_SMTP_HOST') && trim((string)MAIL_SMTP_HOST) !== '';
+
+    if ($useSmtp) {
+        $autoloadPath = __DIR__ . '/../vendor/autoload.php';
+        if (!file_exists($autoloadPath)) {
+            error_log('No se encontró autoload de PHPMailer para SMTP.');
+            return false;
+        }
+
+        require_once $autoloadPath;
+
+        $sent = false;
+        foreach ($to as $recipient) {
+            try {
+                $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+                $mail->isSMTP();
+                $mail->Host = MAIL_SMTP_HOST;
+                $mail->Port = (int)MAIL_SMTP_PORT;
+                $mail->SMTPAuth = (bool)MAIL_SMTP_AUTH;
+                $mail->Username = MAIL_SMTP_USERNAME;
+                $mail->Password = MAIL_SMTP_PASSWORD;
+                $encryption = trim((string)MAIL_SMTP_ENCRYPTION);
+                $mail->SMTPSecure = $encryption !== '' ? $encryption : false;
+                $mail->setFrom($fromAddress, $fromName);
+                $mail->addReplyTo($replyToEmail, $fromName);
+                $mail->addAddress($recipient);
+                $mail->Subject = $subject;
+                $mail->Body = $message;
+                $mail->AltBody = strip_tags($message);
+                $mail->CharSet = 'UTF-8';
+                $mail->send();
+                $sent = true;
+            } catch (Exception $e) {
+                error_log('No se pudo enviar correo SMTP a ' . $recipient . ': ' . $e->getMessage());
+            }
+        }
+
+        return $sent;
+    }
+
+    if (!function_exists('mail')) {
+        error_log('PHP mail() no está disponible en este entorno.');
+        return false;
+    }
+
+    $headers = "From: {$fromName} <{$fromAddress}>\r\n";
+    $headers .= "Reply-To: {$replyToEmail}\r\n";
+    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+    $sent = false;
+    foreach ($to as $recipient) {
+        $result = @mail($recipient, $subject, wordwrap($message, 70), $headers);
+        if ($result) {
+            $sent = true;
+        } else {
+            error_log('No se pudo enviar correo a ' . $recipient);
+        }
+    }
+
+    return $sent;
+}
+
+/**
  * Enviar correo de aviso a los admins cuando se cree un ticket
  */
 function sendAdminNewTicketEmail($ticket_id, $asunto, $descripcion, $usuario_id, $ubicacion, $area = null) {
@@ -455,49 +534,8 @@ function sendAdminNewTicketEmail($ticket_id, $asunto, $descripcion, $usuario_id,
     $fromName = defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'Sistema de Tickets';
 
     $sent = false;
-
-    $useSmtp = defined('MAIL_DRIVER') && strtolower(MAIL_DRIVER) === 'smtp' && defined('MAIL_SMTP_HOST') && trim(MAIL_SMTP_HOST) !== '';
-    if ($useSmtp && file_exists(__DIR__ . '/../vendor/autoload.php')) {
-        require_once __DIR__ . '/../vendor/autoload.php';
-
-        foreach ($recipients as $recipient) {
-            try {
-                $mail = new PHPMailer\PHPMailer\PHPMailer(true);
-                $mail->isSMTP();
-                $mail->Host = MAIL_SMTP_HOST;
-                $mail->Port = (int)MAIL_SMTP_PORT;
-                $mail->SMTPAuth = (bool)MAIL_SMTP_AUTH;
-                $mail->Username = MAIL_SMTP_USERNAME;
-                $mail->Password = MAIL_SMTP_PASSWORD;
-                $mail->SMTPSecure = trim(MAIL_SMTP_ENCRYPTION) !== '' ? trim(MAIL_SMTP_ENCRYPTION) : false;
-                $mail->setFrom($fromAddress, $fromName);
-                $mail->addReplyTo($replyToEmail, $usuarioNombre);
-                $mail->addAddress($recipient);
-                $mail->Subject = $subject;
-                $mail->Body = $message;
-                $mail->AltBody = strip_tags($message);
-                $mail->CharSet = 'UTF-8';
-                $mail->send();
-                $sent = true;
-            } catch (Exception $e) {
-                error_log('No se pudo enviar correo SMTP a ' . $recipient . ' para el ticket #' . $ticket_id . ': ' . $e->getMessage());
-            }
-        }
-
-        return $sent;
-    }
-
-    if (!function_exists('mail')) {
-        error_log('PHP mail() no está disponible en este entorno.');
-        return false;
-    }
-
-    $headers = "From: {$fromName} <{$fromAddress}>\r\n";
-    $headers .= "Reply-To: {$replyToEmail}\r\n";
-    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-
     foreach ($recipients as $recipient) {
-        $result = @mail($recipient, $subject, wordwrap($message, 70), $headers);
+        $result = sendMailMessage($recipient, $subject, $message, $replyToEmail, $fromAddress, $fromName);
         if ($result) {
             $sent = true;
         } else {

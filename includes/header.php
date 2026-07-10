@@ -45,7 +45,7 @@ require_once __DIR__ . '/functions.php';
                                 <span class="ms-2"><?php echo sanitize(getUserName()); ?></span>
                             </span>
                             <?php if (isSuperAdmin()): ?>
-                                <span class="badge bg-warning text-dark ms-2">Superadmin</span>
+                                <span class="badge badge-superadmin ms-2">Superadmin</span>
                             <?php elseif (isAdmin()): ?>
                                 <span class="badge bg-secondary ms-2">Admin</span>
                             <?php endif; ?>
