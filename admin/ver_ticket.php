@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         $estadoClass = '';
                         switch($ticket['estado']) {
                             case 'Nuevo':
-                                $estadoClass = 'badge bg-warning text-dark';
+                                $estadoClass = 'badge-status nuevo';
                                 break;
                             case 'En proceso':
                                 $estadoClass = 'badge bg-info';
@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 $estadoClass = 'badge bg-success';
                                 break;
                             case 'Cerrado':
-                                $estadoClass = 'badge bg-secondary';
+                                $estadoClass = 'badge-status cerrado';
                                 break;
                         }
                         ?>
@@ -239,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <!-- Sidebar - Cambiar Estado -->
     <div class="col-lg-4">
         <div class="card shadow mb-4">
-            <div class="card-header bg-warning text-dark">
+            <div class="card-header bg-warning text-white">
                 <h5 class="mb-0">
                     <i class="fas fa-tasks"></i> Cambiar Estado
                 </h5>

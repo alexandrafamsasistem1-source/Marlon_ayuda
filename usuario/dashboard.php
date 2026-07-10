@@ -122,10 +122,10 @@ $tickets = getUserTickets($usuario_id, 100, 0);
                                             <?php 
                                             $estadoClass = '';
                                             switch($ticket['estado']) {
-                                                case 'Nuevo': $estadoClass = 'badge bg-warning text-dark'; break;
+                                                case 'Nuevo': $estadoClass = 'badge-status nuevo'; break;
                                                 case 'En proceso': $estadoClass = 'badge bg-info'; break;
                                                 case 'Resuelto': $estadoClass = 'badge bg-success'; break;
-                                                case 'Cerrado': $estadoClass = 'badge bg-secondary'; break;
+                                                case 'Cerrado': $estadoClass = 'badge-status cerrado'; break;
                                             }
                                             ?>
                                             <span class="badge-status <?php echo strtolower(str_replace(' ', '', $ticket['estado'])); ?>"><?php echo $ticket['estado']; ?></span>

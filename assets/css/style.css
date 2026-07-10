@@ -5,11 +5,11 @@
     --primary-color: #0b6b47; /* deep green */
     --primary-dark: #085033; /* darker green */
     --accent-gold: #c9b07a; /* gold accent */
-    --secondary-color: #6c757d;
+    --secondary-color:#DFC5CBCB;
     --success-color: #28a745;
     --danger-color: #dc3545;
     --warning-color: #C57D88;
-    --info-color: #17a2b8;
+    --info-color: #BCCBB0;
     --light-color: #f7f8f6;
     --dark-color: #1f2b2a;
 }
@@ -83,8 +83,16 @@ main {
 }
 
 /* Ensure card body text is always readable (avoid invisible white-on-white) */
-.card .card-body, .card .card-title, .card h5, .card p, .card small {
+.card .card-body, .card .card-title, .card p, .card small {
     color: #1b1a1a !important;
+}
+
+.card-header.text-white h5,
+.card-header.text-white h4,
+.card-header.text-white h3,
+.card-header.text-white h2,
+.card-header.text-white h1 {
+    color: #fff !important;
 }
 
 /* Stat cards that intentionally use white text should use the .text-white helper */
@@ -221,15 +229,18 @@ main {
 }
 .table-clean tbody tr:last-child { border-bottom: none; }
 .table-clean td, .table-clean th { vertical-align: middle; padding: 1rem; }
-.table-clean .user-cell small { display: block; color: #6c757d; margin-top: 0.35rem; }
+.table-clean .user-cell small { display: block; color: #DFC5CBCB; margin-top: 0.35rem; }
 .table-clean .action-btn { width:38px; height:38px; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; }
-.table-clean .badge-status { padding: 0.32rem 0.6rem; border-radius: 0.4rem; font-weight:600; }
+    .badge-status { display: inline-block; padding: 0.32rem 0.6rem; border-radius: 0.4rem; font-weight: 600; font-size: 0.85rem; }
 
 /* Specific color for ticket states */
 .badge-status.nuevo { background:#BCCBB0; color:#212529; }
 .badge-status.proceso { background:#17a2b8; color:#fff; }
 .badge-status.resuelto { background:#28a745; color:#fff; }
-.badge-status.cerrado { background:#6c757d; color:#fff; }
+.badge-status.cerrado { background:#C57D88; color:#fff; }
+
+/* Badge for Superadmin role */
+.badge-superadmin { background:#BCCBB0; color:#212529; }
 
 /* Improve contrast for table rows and badges */
 .table tbody td { vertical-align: middle; }

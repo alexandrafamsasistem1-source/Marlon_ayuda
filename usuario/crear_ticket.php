@@ -8,6 +8,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
+// 1. IMPORTAMOS EL HELPER DE CORREO AQUÍ
+require_once __DIR__ . '/../includes/mail_helper.php'; 
 
 // Verificar que esté logueado (usuario normal)
 if (!isLoggedIn()) {
@@ -57,6 +59,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = createTicket($usuario_id, $asunto, $descripcion, $ubicacion, $area);
 
         if ($result['success']) {
+            $usuarioActual = getUserById($usuario_id);
+            $nombreTicket = trim($usuarioActual['nombre'] ?? $nombre);
+            $emailTicket = trim($usuarioActual['email'] ?? $gmail);
+
+            // Enviar notificación automática al superadmin usando el helper central de correo
+            $mailEnviado = notificarNuevoTicket(
+                $nombreTicket,
+                $emailTicket,
+                $asunto,
+                $descripcion,
+                $ubicacion,
+                $area,
+                $result['ticket_id'] ?? null
+            );
+
+            if (!$mailEnviado) {
+                error_log('No se pudo enviar la notificación automática de nuevo ticket al superadmin.');
+            }
+
             echo '<script>alert("¡Ticket creado exitosamente!"); window.location.href="' . BASE_URL . '/usuario/dashboard.php";</script>';
             exit();
         } else {
@@ -81,7 +102,6 @@ $usuario = getUserById($usuario_id);
             </div>
             <div class="card-body">
 
-                <!-- Mensaje de error -->
                 <?php if (!empty($error)): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <i class="fas fa-exclamation-triangle"></i> <?php echo sanitize($error); ?>

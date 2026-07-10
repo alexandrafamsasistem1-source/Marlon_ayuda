@@ -118,7 +118,7 @@ $notificaciones_recientes = getNotificationsForUser(getUserId(), 10);
                                 </td>
                                 <td>
                                     <strong><?php echo sanitize($ticket['usuario_nombre']); ?></strong>
-                                    <small><?php echo sanitize($ticket['usuario_email']); ?></small>
+                                 
                                 </td>
                                 <td>
                                     <?php echo sanitize(substr($ticket['asunto'], 0, 30)); ?>
@@ -133,7 +133,7 @@ $notificaciones_recientes = getNotificationsForUser(getUserId(), 10);
                                     $estadoClass = '';
                                     switch($ticket['estado']) {
                                         case 'Nuevo':
-                                            $estadoClass = 'badge bg-nuevo';
+                                            $estadoClass = 'badge-status nuevo';
                                             break;
                                         case 'En proceso':
                                             $estadoClass = 'badge bg-info';
@@ -142,7 +142,7 @@ $notificaciones_recientes = getNotificationsForUser(getUserId(), 10);
                                             $estadoClass = 'badge bg-success';
                                             break;
                                         case 'Cerrado':
-                                            $estadoClass = 'badge bg-secondary';
+                                            $estadoClass = 'badge-status cerrado';
                                             break;
                                     }
                                     ?>
@@ -172,7 +172,7 @@ $notificaciones_recientes = getNotificationsForUser(getUserId(), 10);
                                 </td>
                                 <td>
                                     <a href="<?php echo BASE_URL; ?>/admin/ver_ticket.php?id=<?php echo $ticket['id']; ?>" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-eye"></i> Ver
+                                        <i class="fas fa-eye"></i> 
                                     </a>
                                 </td>
                             </tr>

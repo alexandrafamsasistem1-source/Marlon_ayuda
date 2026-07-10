@@ -70,7 +70,7 @@ if (!empty($ticket['area'])) {
                         $estadoClass = '';
                         switch($ticket['estado']) {
                             case 'Nuevo':
-                                $estadoClass = 'badge bg-warning text-dark';
+                                $estadoClass = 'badge-status nuevo';
                                 break;
                             case 'En proceso':
                                 $estadoClass = 'badge bg-info';
@@ -79,7 +79,7 @@ if (!empty($ticket['area'])) {
                                 $estadoClass = 'badge bg-success';
                                 break;
                             case 'Cerrado':
-                                $estadoClass = 'badge bg-secondary';
+                                $estadoClass = 'badge-status cerrado';
                                 break;
                         }
                         ?>
