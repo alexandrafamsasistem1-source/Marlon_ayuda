@@ -237,7 +237,7 @@ proyecto_ayuda_app/
    - Completar formulario (nombre, email, asunto, descripción, ubicación)
    - Enviar
 
-3. **Ver Estado**
+3. **Ver Estado**mmmm
    - En Dashboard ves todos tus tickets
    - Hacer clic en "Ver" para más detalles
    - Ver respuestas del administrador
@@ -349,7 +349,7 @@ proyecto_ayuda_app/
 
 ## 🚀 Mejoras Futuras (Roadmap)
 
-- [ ] Notificaciones por email
+- [x] Notificaciones por email
 - [ ] Adjuntos de archivos en tickets
 - [ ] Búsqueda y filtros avanzados
 - [ ] Prioridades dinámicas
