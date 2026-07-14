@@ -237,7 +237,7 @@ proyecto_ayuda_app/
    - Completar formulario (nombre, email, asunto, descripción, ubicación)
    - Enviar
 
-3. **Ver Estado**mmmm
+3. **Ver Estado**
    - En Dashboard ves todos tus tickets
    - Hacer clic en "Ver" para más detalles
    - Ver respuestas del administrador
