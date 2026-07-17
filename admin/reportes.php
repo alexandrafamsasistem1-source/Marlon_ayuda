@@ -45,6 +45,45 @@ $stmt = $pdo->prepare(
 $stmt->execute([$start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')]);
 $tickets = $stmt->fetchAll();
 
+// Resumen rápido por estado
+$total_month = count($tickets);
+$counts_by_state = [];
+foreach ($tickets as $t) {
+    $s = $t['estado'] ?? 'Sin estado';
+    if (!isset($counts_by_state[$s])) {
+        $counts_by_state[$s] = 0;
+    }
+    $counts_by_state[$s]++;
+}
+
+$stateClassMap = [
+    'Nuevo' => 're-state-chip--nuevo',
+    'En proceso' => 're-state-chip--proceso',
+    'Resuelto' => 're-state-chip--resuelto',
+    'Cerrado' => 're-state-chip--cerrado',
+    'Sin estado' => 're-state-chip--default'
+];
+
+$stateDisplayOrder = ['Resuelto', 'En proceso', 'Cerrado', 'Nuevo'];
+$orderedCountsByState = [];
+foreach ($stateDisplayOrder as $stateName) {
+    if (isset($counts_by_state[$stateName])) {
+        $orderedCountsByState[$stateName] = $counts_by_state[$stateName];
+    }
+}
+foreach ($counts_by_state as $stateName => $count) {
+    if (!isset($orderedCountsByState[$stateName])) {
+        $orderedCountsByState[$stateName] = $count;
+    }
+}
+
+$monthNames = [
+    1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+    5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+    9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+];
+$monthLabel = $monthNames[(int)$start->format('n')] . ' ' . $start->format('Y');
+
 // Exportar a CSV (compatible con Excel) si se solicita
 if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     $filename = 'reportes_' . $start->format('Y_m') . '.csv';
@@ -72,86 +111,102 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">Informe mensual: <?php echo htmlspecialchars($start->format('F Y'), ENT_QUOTES, 'UTF-8'); ?></h4>
-    <div>
-        <form method="GET" class="d-inline-block me-2">
-            <label for="month" class="visually-hidden">Mes</label>
-            <input type="month" id="month" name="month" value="<?php echo $selectedMonth; ?>" class="form-control d-inline-block" style="width:160px; display:inline-block;">
-            <button class="btn btn-primary ms-2" type="submit">Mostrar</button>
-        </form>
-        <a href="?month=<?php echo $selectedMonth; ?>&export=excel" class="btn btn-success">Exportar a Excel</a>
-    </div>
-</div>
-
-<?php
-// Resumen rápido por estado
-$total_month = count($tickets);
-$counts_by_state = [];
-foreach ($tickets as $t) {
-    $s = $t['estado'] ?? 'Sin estado';
-    if (!isset($counts_by_state[$s])) $counts_by_state[$s] = 0;
-    $counts_by_state[$s]++;
-}
-?>
-
-<div class="row mb-3">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h6 class="card-title">Total tickets este mes</h6>
-                <h3><?php echo $total_month; ?></h3>
+<div class="reportes-page">
+    <div class="reportes-toolbar card shadow-sm mb-4">
+        <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h4 class="mb-1">Informe mensual</h4>
+                <p class="reportes-subtitle mb-0"><?php echo sanitize($monthLabel); ?></p>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <form method="GET" class="d-flex align-items-center gap-2">
+                    <label for="month" class="visually-hidden">Mes</label>
+                    <input type="month" id="month" name="month" value="<?php echo $selectedMonth; ?>" class="form-control reportes-month-input">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-filter me-1"></i> Mostrar
+                    </button>
+                </form>
+                <a href="?month=<?php echo $selectedMonth; ?>&export=excel" class="btn btn-outline-success">
+                    <i class="fas fa-file-excel me-1"></i> Exportar
+                </a>
             </div>
         </div>
     </div>
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-body">
-                <h6 class="card-title">Por estado</h6>
-                <?php foreach ($counts_by_state as $state => $c): ?>
-                    <span class="badge bg-secondary me-2"><?php echo sanitize($state); ?>: <?php echo $c; ?></span>
-                <?php endforeach; ?>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card reportes-stat-card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="reportes-stat-label">Total de tickets</div>
+                    <div class="reportes-stat-value"><?php echo $total_month; ?></div>
+                    <small class="text-muted">Registrados en el mes seleccionado</small>
+                </div>
             </div>
         </div>
-    </div>
-</div>
-
-<div class="card shadow">
-    <div class="card-header bg-dark text-white">
-        <h5 class="mb-0">Detalle de tickets del mes</h5>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-sm table-hover">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Usuario</th>
-                        <th>Email</th>
-                        <th>Asunto</th>
-                        <th>Estado</th>
-                        <th>Ubicación</th>
-                        <th>Fecha</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($tickets)): ?>
-                        <tr><td colspan="7" class="text-center text-muted">No se encontraron tickets en este mes.</td></tr>
+        <div class="col-md-8">
+            <div class="card reportes-stat-card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="reportes-stat-label mb-2">Distribución por estado</div>
+                    <?php if (empty($counts_by_state)): ?>
+                        <small class="text-muted">Sin tickets para mostrar.</small>
                     <?php else: ?>
-                        <?php foreach ($tickets as $ticket): ?>
-                            <tr>
-                                <td><code>#<?php echo $ticket['id']; ?></code></td>
-                                <td><?php echo sanitize($ticket['usuario_nombre']); ?></td>
-                                <td><?php echo sanitize($ticket['usuario_email']); ?></td>
-                                <td><?php echo sanitize(mb_substr($ticket['asunto'], 0, 80)); ?></td>
-                                <td><span class="badge bg-info"><?php echo sanitize($ticket['estado']); ?></span></td>
-                                <td><?php echo sanitize($ticket['ubicacion']); ?></td>
-                                <td><small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($ticket['fecha_creacion'])); ?></small></td>
-                            </tr>
-                        <?php endforeach; ?>
+                        <div class="d-flex flex-wrap gap-2">
+                            <?php foreach ($orderedCountsByState as $state => $c): ?>
+                                <?php $chipClass = $stateClassMap[$state] ?? 're-state-chip--default'; ?>
+                                <span class="re-state-chip <?php echo $chipClass; ?>">
+                                    <?php echo sanitize($state); ?>: <?php echo (int)$c; ?>
+                                </span>
+                            <?php endforeach; ?>
+                        </div>
                     <?php endif; ?>
-                </tbody>
-            </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm reportes-table-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-list-ul me-2"></i>Detalle de tickets del mes
+            </h5>
+            <span class="badge bg-light text-dark"><?php echo $total_month; ?> registros</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover reportes-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuario</th>
+                            <th>Email</th>
+                            <th>Asunto</th>
+                            <th>Estado</th>
+                            <th>Ubicación</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($tickets)): ?>
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">No se encontraron tickets en este mes.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($tickets as $ticket): ?>
+                                <?php $statusClass = $stateClassMap[$ticket['estado'] ?? ''] ?? 're-state-chip--default'; ?>
+                                <tr>
+                                    <td><a class="reportes-ticket-link" href="<?php echo BASE_URL; ?>/admin/ver_ticket.php?id=<?php echo (int)$ticket['id']; ?>">#<?php echo (int)$ticket['id']; ?></a></td>
+                                    <td><?php echo sanitize($ticket['usuario_nombre']); ?></td>
+                                    <td><?php echo sanitize($ticket['usuario_email']); ?></td>
+                                    <td><?php echo sanitize(mb_substr($ticket['asunto'], 0, 80)); ?></td>
+                                    <td><span class="re-state-chip <?php echo $statusClass; ?>"><?php echo sanitize($ticket['estado']); ?></span></td>
+                                    <td><?php echo sanitize($ticket['ubicacion']); ?></td>
+                                    <td><small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($ticket['fecha_creacion'])); ?></small></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

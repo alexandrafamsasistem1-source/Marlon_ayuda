@@ -145,23 +145,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     <div class="col-md-6">
                         <small class="text-muted">Estado Actual:</small><br>
                         <?php 
-                        $estadoClass = '';
+                        $estadoClass = 're-state-chip re-state-chip--default';
                         switch($ticket['estado']) {
                             case 'Nuevo':
-                                $estadoClass = 'badge-status nuevo';
+                                $estadoClass = 're-state-chip re-state-chip--nuevo';
                                 break;
                             case 'En proceso':
-                                $estadoClass = 'badge bg-info';
+                                $estadoClass = 're-state-chip re-state-chip--proceso';
                                 break;
                             case 'Resuelto':
-                                $estadoClass = 'badge bg-success';
+                                $estadoClass = 're-state-chip re-state-chip--resuelto';
                                 break;
                             case 'Cerrado':
-                                $estadoClass = 'badge-status cerrado';
+                                $estadoClass = 're-state-chip re-state-chip--cerrado';
                                 break;
                         }
                         ?>
-                        <span class="<?php echo $estadoClass; ?>" style="font-size: 1.1em;">
+                        <span class="<?php echo $estadoClass; ?>">
                             <?php echo $ticket['estado']; ?>
                         </span>
                     </div>
@@ -222,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             <textarea class="form-control" name="mensaje" rows="4" placeholder="Escribe tu respuesta aquí..." required><?php echo isset($_POST['mensaje']) ? sanitize($_POST['mensaje']) : ''; ?></textarea>
                         </div>
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-info">
+                            <button type="submit" class="btn btn-palette-primary">
                                 <i class="fas fa-paper-plane"></i> Enviar Respuesta
                             </button>
                             <a href="<?php echo BASE_URL; ?>/admin/ver_ticket.php?id=<?php echo $ticket_id; ?>" class="btn btn-light">Cancelar</a>
@@ -284,7 +284,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         </select>
                     </div>
 
-                    <button type="submit" class="btn btn-warning w-100">
+                    <button type="submit" class="btn btn-palette-accent w-100">
                         <i class="fas fa-save"></i> Guardar Cambios
                     </button>
                 </form>

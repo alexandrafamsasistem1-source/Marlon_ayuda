@@ -58,7 +58,6 @@ $notificaciones_recientes = getNotificationsForUser(getUserId(), 10);
         <h4 class="mb-0">
             <i class="fas fa-table"></i> Todos los Tickets
         </h4>
-        <!-- Reportes button removed -->
     </div>
     <div class="card-body">
 
@@ -133,16 +132,16 @@ $notificaciones_recientes = getNotificationsForUser(getUserId(), 10);
                                     $estadoClass = '';
                                     switch($ticket['estado']) {
                                         case 'Nuevo':
-                                            $estadoClass = 'badge-status nuevo';
+                                            $estadoClass = 're-state-chip re-state-chip--nuevo';
                                             break;
                                         case 'En proceso':
-                                            $estadoClass = 'badge bg-info';
+                                            $estadoClass = 're-state-chip re-state-chip--proceso';
                                             break;
                                         case 'Resuelto':
-                                            $estadoClass = 'badge bg-success';
+                                            $estadoClass = 're-state-chip re-state-chip--resuelto';
                                             break;
                                         case 'Cerrado':
-                                            $estadoClass = 'badge-status cerrado';
+                                            $estadoClass = 're-state-chip re-state-chip--cerrado';
                                             break;
                                     }
                                     ?>

@@ -332,15 +332,20 @@ function getUnreadNotificationsCount($usuario_id = null) {
 
 /**
  * Obtener notificaciones recientes para un usuario
+ * @param int $usuario_id - ID del usuario
+ * @param int $limit - Límite de notificaciones a devolver
+ * @param bool $unreadOnly - Si es true, solo devuelve notificaciones no leídas
  */
-function getNotificationsForUser($usuario_id, $limit = 10) {
+function getNotificationsForUser($usuario_id, $limit = 10, $unreadOnly = true) {
     if (!$usuario_id) {
         return [];
     }
 
     ensureNotificationsTable();
     $pdo = getDB();
-    $stmt = $pdo->prepare('SELECT * FROM notificaciones WHERE usuario_id = ? ORDER BY fecha_creacion DESC LIMIT ?');
+    
+    $condition = $unreadOnly ? 'AND leida = 0' : '';
+    $stmt = $pdo->prepare('SELECT * FROM notificaciones WHERE usuario_id = ? ' . $condition . ' ORDER BY fecha_creacion DESC LIMIT ?');
     $stmt->execute([$usuario_id, $limit]);
     return $stmt->fetchAll();
 }
@@ -611,6 +616,15 @@ function updateTicketStatus($ticket_id, $estado, $asignado_a = null) {
  */
 function addResponseToTicket($ticket_id, $usuario_id, $mensaje) {
     $pdo = getDB();
+
+    $stmtRol = $pdo->prepare('SELECT rol FROM usuarios WHERE id = ? AND activo = 1 LIMIT 1');
+    $stmtRol->execute([$usuario_id]);
+    $rolUsuario = $stmtRol->fetchColumn();
+
+    if (!in_array($rolUsuario, ['admin', 'superadmin'], true)) {
+        return ['success' => false, 'error' => 'No autorizado para responder tickets'];
+    }
+
     $stmt = $pdo->prepare('
         INSERT INTO respuestas_ticket (ticket_id, usuario_id, mensaje)
         VALUES (?, ?, ?)
@@ -691,6 +705,121 @@ function getAllAdmins() {
 }
 
 /**
+ * Obtener todos los usuarios
+ */
+function getAllUsers($limit = 100, $offset = 0) {
+    $pdo = getDB();
+    $stmt = $pdo->prepare('SELECT id, nombre, email, rol, fecha_registro, activo FROM usuarios ORDER BY fecha_registro DESC LIMIT ? OFFSET ?');
+    $stmt->execute([$limit, $offset]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Contar total de usuarios
+ */
+function countAllUsers() {
+    $pdo = getDB();
+    $stmt = $pdo->query('SELECT COUNT(*) as total FROM usuarios');
+    return (int)($stmt->fetch()['total'] ?? 0);
+}
+
+/**
+ * Actualizar datos de un usuario
+ */
+function updateUser($user_id, $nombre, $email, $rol = null, $password = null) {
+    $pdo = getDB();
+    
+    // Verificar que el email no esté en uso por otro usuario
+    $stmt = $pdo->prepare('SELECT id FROM usuarios WHERE email = ? AND id != ?');
+    $stmt->execute([$email, $user_id]);
+    if ($stmt->fetch()) {
+        return [
+            'success' => false,
+            'error' => 'El email ya está registrado por otro usuario.'
+        ];
+    }
+    
+    try {
+        if ($password) {
+            $sql = 'UPDATE usuarios SET nombre = ?, email = ?, rol = ?, password = ? WHERE id = ?';
+            $params = [$nombre, $email, $rol, hashPassword($password), $user_id];
+        } else {
+            $sql = 'UPDATE usuarios SET nombre = ?, email = ?, rol = ? WHERE id = ?';
+            $params = [$nombre, $email, $rol, $user_id];
+        }
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        
+        return [
+            'success' => true,
+            'message' => 'Usuario actualizado correctamente.'
+        ];
+    } catch (PDOException $e) {
+        error_log('Error actualizando usuario: ' . $e->getMessage());
+        return [
+            'success' => false,
+            'error' => 'Error al actualizar el usuario.'
+        ];
+    }
+}
+
+/**
+ * Eliminar un usuario
+ */
+function deleteUser($user_id) {
+    $pdo = getDB();
+    
+    // Verificar que no sea el único superadmin
+    if (!isSuperAdmin()) {
+        $user = getUserById($user_id);
+        if ($user && $user['rol'] === 'superadmin') {
+            $countSuperAdmins = $pdo->query('SELECT COUNT(*) as total FROM usuarios WHERE rol = "superadmin"')->fetch()['total'] ?? 0;
+            if ($countSuperAdmins <= 1) {
+                return [
+                    'success' => false,
+                    'error' => 'No se puede eliminar el único superadmin del sistema.'
+                ];
+            }
+        }
+    }
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // Reasignar tickets del usuario a NULL
+        $stmt = $pdo->prepare('UPDATE tickets SET usuario_id = NULL WHERE usuario_id = ?');
+        $stmt->execute([$user_id]);
+        
+        // Eliminar notificaciones del usuario
+        $stmt = $pdo->prepare('DELETE FROM notificaciones WHERE usuario_id = ?');
+        $stmt->execute([$user_id]);
+        
+        // Eliminar respuestas del usuario
+        $stmt = $pdo->prepare('DELETE FROM respuestas_ticket WHERE usuario_id = ?');
+        $stmt->execute([$user_id]);
+        
+        // Eliminar el usuario
+        $stmt = $pdo->prepare('DELETE FROM usuarios WHERE id = ?');
+        $stmt->execute([$user_id]);
+        
+        $pdo->commit();
+        
+        return [
+            'success' => true,
+            'message' => 'Usuario eliminado correctamente.'
+        ];
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        error_log('Error eliminando usuario: ' . $e->getMessage());
+        return [
+            'success' => false,
+            'error' => 'Error al eliminar el usuario.'
+        ];
+    }
+}
+
+/**
  * Verificar si un ticket pertenece al usuario
  */
 function isTicketOwnedByUser($ticket_id, $usuario_id) {
@@ -723,5 +852,51 @@ function deleteTicket($ticket_id) {
         return false;
     }
 }
+/**
+ * Obtener el historial de tickets resueltos o cerrados por mes, año y administrador asignado
+ */
+function getResolvedTicketsByMonth($year, $month, $assignedUserId = null) {
+    $pdo = getDB();
+    
+    // Comprobar si existe la columna 'area' tal como haces en getUserTickets
+    $selectArea = '';
+    try {
+        $hasArea = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . DB_NAME . "' AND TABLE_NAME = 'tickets' AND COLUMN_NAME = 'area'")->fetchColumn();
+        if ($hasArea) $selectArea = ', t.area';
+    } catch (Exception $e) {
+        $selectArea = '';
+    }
 
+    $sql = "SELECT 
+                t.id,
+                t.asunto,
+                t.estado,
+                t.ubicacion,
+                t.fecha_creacion,
+                t.fecha_ultima_actualizacion AS fecha_resolucion" . $selectArea . ",
+                u.nombre as usuario_nombre,
+                a.nombre as asignado_nombre
+            FROM tickets t
+            LEFT JOIN usuarios u ON t.usuario_id = u.id
+            LEFT JOIN usuarios a ON t.asignado_a = a.id
+            WHERE t.estado IN ('Resuelto', 'Cerrado')
+              AND YEAR(t.fecha_ultima_actualizacion) = ?
+              AND MONTH(t.fecha_ultima_actualizacion) = ?
+              " . ($assignedUserId !== null ? "AND t.asignado_a = ?" : "") . "
+            ORDER BY t.fecha_ultima_actualizacion DESC";
+
+    try {
+        $stmt = $pdo->prepare($sql);
+        $params = [(int)$year, (int)$month];
+        if ($assignedUserId !== null) {
+            $params[] = (int)$assignedUserId;
+        }
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log("Error en getResolvedTicketsByMonth: " . $e->getMessage());
+        return [];
+    }
+}
 ?>
+

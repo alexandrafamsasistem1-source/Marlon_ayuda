@@ -33,6 +33,15 @@ if ($ticket['usuario_id'] !== $usuario_id && !isAdmin()) {
     die('No tienes permiso para ver este ticket.');
 }
 
+// Mostrar conversación en modo solo lectura (respuestas del equipo admin)
+$respuestas = getTicketResponses($ticket_id);
+$respuestas_admin = [];
+foreach ($respuestas as $respuesta) {
+    if (in_array($respuesta['rol'], ['admin', 'superadmin'], true)) {
+        $respuestas_admin[] = $respuesta;
+    }
+}
+
 // Preferir área persistida; si no existe, derivar por ubicación
 $area = 'Administración';
 if (!empty($ticket['area'])) {
@@ -67,23 +76,23 @@ if (!empty($ticket['area'])) {
                     <div class="col-md-6">
                         <small class="text-muted">Estado:</small><br>
                         <?php 
-                        $estadoClass = '';
+                        $estadoClass = 're-state-chip re-state-chip--default';
                         switch($ticket['estado']) {
                             case 'Nuevo':
-                                $estadoClass = 'badge-status nuevo';
+                                $estadoClass = 're-state-chip re-state-chip--nuevo';
                                 break;
                             case 'En proceso':
-                                $estadoClass = 'badge bg-info';
+                                $estadoClass = 're-state-chip re-state-chip--proceso';
                                 break;
                             case 'Resuelto':
-                                $estadoClass = 'badge bg-success';
+                                $estadoClass = 're-state-chip re-state-chip--resuelto';
                                 break;
                             case 'Cerrado':
-                                $estadoClass = 'badge-status cerrado';
+                                $estadoClass = 're-state-chip re-state-chip--cerrado';
                                 break;
                         }
                         ?>
-                        <span class="<?php echo $estadoClass; ?>" style="font-size: 1.1em;">
+                        <span class="<?php echo $estadoClass; ?>">
                             <?php echo $ticket['estado']; ?>
                         </span>
                     </div>
@@ -117,10 +126,35 @@ if (!empty($ticket['area'])) {
                 <div class="bg-light p-3 rounded border">
                     <?php echo nl2br(sanitize($ticket['descripcion'])); ?>
                 </div>
+
+                <hr>
+
+                <h6>Respuestas del Soporte</h6>
+                <?php if (empty($respuestas_admin)): ?>
+                    <div class="bg-light p-3 rounded border text-muted">
+                        Aún no hay respuestas del equipo de soporte.
+                    </div>
+                <?php else: ?>
+                    <div class="list-group">
+                        <?php foreach ($respuestas_admin as $respuesta): ?>
+                            <div class="list-group-item list-group-item-success">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <strong><?php echo sanitize($respuesta['usuario_nombre']); ?></strong>
+                                    <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($respuesta['fecha_creacion'])); ?></small>
+                                </div>
+                                <div class="mt-1">
+                                    <?php echo nl2br(sanitize($respuesta['mensaje'])); ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+
+                <small class="text-muted d-block mt-2">
+                    Este chat es solo de lectura para usuarios.
+                </small>
             </div>
         </div>
-
-        <!-- Respuestas eliminadas por petición del usuario -->
 
     </div>
 

@@ -119,16 +119,16 @@ $tickets = getUserTickets($usuario_id, 100, 0);
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <?php 
-                                            $estadoClass = '';
-                                            switch($ticket['estado']) {
-                                                case 'Nuevo': $estadoClass = 'badge-status nuevo'; break;
-                                                case 'En proceso': $estadoClass = 'badge bg-info'; break;
-                                                case 'Resuelto': $estadoClass = 'badge bg-success'; break;
-                                                case 'Cerrado': $estadoClass = 'badge-status cerrado'; break;
+                                            <?php
+                                            $estadoClass = 're-state-chip re-state-chip--default';
+                                            switch ($ticket['estado']) {
+                                                case 'Nuevo': $estadoClass = 're-state-chip re-state-chip--nuevo'; break;
+                                                case 'En proceso': $estadoClass = 're-state-chip re-state-chip--proceso'; break;
+                                                case 'Resuelto': $estadoClass = 're-state-chip re-state-chip--resuelto'; break;
+                                                case 'Cerrado': $estadoClass = 're-state-chip re-state-chip--cerrado'; break;
                                             }
                                             ?>
-                                            <span class="badge-status <?php echo strtolower(str_replace(' ', '', $ticket['estado'])); ?>"><?php echo $ticket['estado']; ?></span>
+                                            <span class="<?php echo $estadoClass; ?>"><?php echo $ticket['estado']; ?></span>
                                         </td>
                                         <td><small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($ticket['fecha_creacion'])); ?></small></td>
                                         <td class="text-end">

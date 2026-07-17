@@ -101,3 +101,71 @@ function setButtonLoading(buttonId, loading = true) {
 }
 
 console.log('Sistema de Tickets - Script iniciado');
+
+/**
+ * Marcar notificaciones como leídas (AJAX)
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    const markAsReadButtons = document.querySelectorAll('.mark-as-read-btn');
+    
+    markAsReadButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const notifId = this.dataset.notifId;
+            const notifItem = document.querySelector(`[data-notif-id="${notifId}"]`);
+            
+            // Hacer petición AJAX
+            fetch(baseUrl + '/api/mark_notification_read.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'notif_id=' + encodeURIComponent(notifId)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Animar la desaparición de la notificación
+                    notifItem.style.transition = 'opacity 0.3s ease-out, max-height 0.3s ease-out';
+                    notifItem.style.opacity = '0';
+                    notifItem.style.maxHeight = '0';
+                    notifItem.style.overflow = 'hidden';
+                    
+                    // Remover del DOM después de la animación
+                    setTimeout(() => {
+                        notifItem.remove();
+                        
+                        // Actualizar el contador de notificaciones
+                        const badge = document.querySelector('#notifDropdown .badge');
+                        if (badge) {
+                            let count = parseInt(badge.textContent) || 0;
+                            count--;
+                            
+                            if (count > 0) {
+                                badge.textContent = count;
+                            } else {
+                                badge.remove();
+                                // Mostrar mensaje de "No hay notificaciones pendientes"
+                                const dropdownList = document.querySelector('.dropdown-menu ul');
+                                if (dropdownList) {
+                                    const emptyMsg = dropdownList.querySelector('.text-muted');
+                                    if (!emptyMsg) {
+                                        const li = document.createElement('li');
+                                        li.innerHTML = '<span class="dropdown-item text-muted">No hay notificaciones pendientes.</span>';
+                                        dropdownList.prepend(li);
+                                    }
+                                }
+                            }
+                        }
+                    }, 300);
+                } else {
+                    console.error('Error al marcar notificación:', data.message);
+                }
+            })
+            .catch(error => console.error('Error en la petición:', error));
+        });
+    });
+});
+
