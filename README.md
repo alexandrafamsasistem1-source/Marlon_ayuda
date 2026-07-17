@@ -12,8 +12,12 @@ Sistema web para gestión de tickets de ayuda desarrollado en **PHP 7+**, **MySQ
 ✅ **Reportes** - Estadísticas con gráficas (Chart.js)
 ✅ **4 Estados de Tickets** - Nuevo, En proceso, Resuelto, Cerrado
 ✅ **2 Ubicaciones** - Finca El Jardín, San Ignacio
+✅ **2 Áreas** - Administración, Poscosecha
+✅ **Notificaciones** - Sistema de notificaciones para admins con estado de lectura
+✅ **Sistema de Migraciones** - Control de versiones para cambios en BD
 ✅ **Interfaz Responsive** - Bootstrap 5
 ✅ **Seguridad** - Prepared statements, XSS protection, validación de roles
+✅ **Correos automáticos** - Notificaciones por email al crear tickets
 
 ---
 
@@ -299,6 +303,7 @@ proyecto_ayuda_app/
 - asunto (VARCHAR 255)
 - descripcion (LONGTEXT)
 - ubicacion (ENUM: 'Finca El Jardín', 'San Ignacio')
+- area (ENUM: 'Administracion', 'Poscosecha')
 - estado (ENUM: 'Nuevo', 'En proceso', 'Resuelto', 'Cerrado')
 - asignado_a (INT, FK → usuarios.id)
 - fecha_creacion (TIMESTAMP)
@@ -314,9 +319,41 @@ proyecto_ayuda_app/
 - fecha_creacion (TIMESTAMP)
 ```
 
+### Tabla: notificaciones
+```sql
+- id (INT, PK, AI)
+- usuario_id (INT, FK → usuarios.id)
+- tipo (VARCHAR 50) - Tipo de notificación (ej: 'ticket_nuevo', 'ticket_respondido')
+- mensaje (TEXT)
+- referencia_id (INT) - ID del ticket relacionado
+- leida (TINYINT) - 0: no leída, 1: leída
+- fecha_creacion (TIMESTAMP)
+- fecha_lectura (TIMESTAMP) - Null si no ha sido leída
+```
+
 ---
 
-## 🛠️ Funciones Principales (includes/functions.php)
+## � Sistema de Migraciones
+
+Las migraciones permiten mantener versionado los cambios en la base de datos. Se encuentran en la carpeta `migrations/`:
+
+- `001_add_area.sql` - Agrega el campo `area` a la tabla de tickets
+- `002_create_notificaciones.sql` - Crea la tabla de notificaciones para admins
+
+**Aplicar migraciones manualmente:**
+```bash
+mysql -u root -p tickets_ayuda < migrations/001_add_area.sql
+mysql -u root -p tickets_ayuda < migrations/002_create_notificaciones.sql
+```
+
+O en phpMyAdmin:
+1. Seleccionar base de datos `tickets_ayuda`
+2. Ir a SQL
+3. Importar cada archivo `.sql` de la carpeta `migrations/`
+
+---
+
+## �🛠️ Funciones Principales (includes/functions.php)
 
 ### Autenticación
 - `isLoggedIn()` - Verificar si está logueado
@@ -350,17 +387,21 @@ proyecto_ayuda_app/
 ## 🚀 Mejoras Futuras (Roadmap)
 
 - [x] Notificaciones por email
-- [ ] Adjuntos de archivos en tickets
-- [ ] Búsqueda y filtros avanzados
-- [ ] Prioridades dinámicas
+- [x] Sistema de migraciones BD
+- [x] Campo de Áreas (Administración, Poscosecha)
+- [x] Notificaciones internas para admins
+- [ ] Dashboard mejorado con widgets
+- [ ] Adjuntos de archivos en tickets y respuestas
+- [ ] Búsqueda avanzada y filtros dinámicos
+- [ ] Prioridades y urgencia de tickets
 - [ ] Exportar reportes (PDF, Excel)
-- [ ] Auditoría de cambios
+- [ ] Auditoría de cambios y historial completo
+- [ ] Asignación automática de tickets (round-robin)
+- [ ] Chat en vivo entre usuario y admin
+- [ ] Encuestas de satisfacción post-cierre
+- [ ] Integración con Slack/Discord para notificaciones
 - [ ] 2FA (Autenticación de dos factores)
-- [ ] API REST JSON
-- [ ] Webhooks
-- [ ] Chat en vivo
-- [ ] Satisfacción del cliente (ratings)
-- [ ] Integración Slack/Discord
+- [ ] API REST JSON completa
 
 ---
 
@@ -397,6 +438,6 @@ Este proyecto es de código abierto y está bajo licencia MIT.
 
 ---
 
-**Versión:** 1.0.0  
-**Última actualización:** Mayo 2026  
+**Versión:** 1.1.0  
+**Última actualización:** Julio 2026  
 **Autor:** Tu Nombre

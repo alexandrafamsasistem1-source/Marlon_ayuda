@@ -45,9 +45,9 @@ require_once __DIR__ . '/functions.php';
                                 <span class="ms-2"><?php echo sanitize(getUserName()); ?></span>
                             </span>
                             <?php if (isSuperAdmin()): ?>
-                                <span class="badge badge-superadmin ms-2">Superadmin</span>
+                                <span class="badge badge-role badge-role-superadmin ms-2">Superadmin</span>
                             <?php elseif (isAdmin()): ?>
-                                <span class="badge bg-secondary ms-2">Admin</span>
+                                <span class="badge badge-role badge-role-admin ms-2">Admin</span>
                             <?php endif; ?>
                         </li>
 
@@ -78,26 +78,31 @@ require_once __DIR__ . '/functions.php';
                                                 }
                                                 $displaySubject = strlen($preview['asunto']) > 80 ? substr($preview['asunto'], 0, 77) . '...' : $preview['asunto'];
                                             ?>
-                                            <li>
-                                                <a class="dropdown-item d-flex justify-content-between align-items-start" href="<?php echo BASE_URL; ?>/admin/ver_ticket.php?id=<?php echo (int)$ticketId; ?>">
-                                                    <div>
+                                            <li class="notification-item" data-notif-id="<?php echo (int)$n['id']; ?>">
+                                                <div class="dropdown-item d-flex justify-content-between align-items-start gap-2 p-2">
+                                                    <a href="<?php echo BASE_URL; ?>/admin/ver_ticket.php?id=<?php echo (int)$ticketId; ?>" class="flex-grow-1" style="text-decoration: none; color: inherit;">
                                                         <div class="<?php echo $n['leida'] ? 'text-muted' : 'fw-bold'; ?> mb-1">
                                                             <?php echo sanitize($displaySubject); ?>
                                                         </div>
                                                         <small class="text-muted"><?php echo sanitize($preview['usuario']); ?> — <?php echo date('d/m/Y H:i', strtotime($preview['fecha'])); ?></small>
+                                                    </a>
+                                                    <div class="d-flex gap-1 flex-shrink-0">
+                                                        <?php if (!$n['leida']): ?>
+                                                            <span class="badge bg-danger align-self-center" style="font-size: 0.65rem;">Nuevo</span>
+                                                        <?php endif; ?>
+                                                        <button class="btn btn-sm btn-link text-danger p-0 mark-as-read-btn" title="Marcar como leída" data-notif-id="<?php echo (int)$n['id']; ?>">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
                                                     </div>
-                                                    <?php if (!$n['leida']): ?>
-                                                        <span class="badge bg-danger ms-2">Nuevo</span>
-                                                    <?php endif; ?>
-                                                </a>
+                                                </div>
                                             </li>
                                         <?php endforeach; ?>
                                     <?php else: ?>
-                                        <li><span class="dropdown-item text-muted">No hay notificaciones aún.</span></li>
+                                        <li><span class="dropdown-item text-muted">No hay notificaciones pendientes.</span></li>
                                     <?php endif; ?>
                                     <li><hr class="dropdown-divider"></li>
                                     <li class="text-center px-2">
-                                        <a href="<?php echo BASE_URL; ?>/admin/dashboard.php?marcar_leidas=1" class="btn btn-sm btn-outline-secondary">Marcar como leídas</a>
+                                        <a href="<?php echo BASE_URL; ?>/admin/dashboard.php?marcar_leidas=1" class="btn btn-sm btn-outline-secondary">Marcar todas como leídas</a>
                                     </li>
                                 </ul>
                             </li>
@@ -132,6 +137,11 @@ require_once __DIR__ . '/functions.php';
                                         </a>
                                     </li>
                                     <li>
+                                        <a class="dropdown-item" href="<?php echo BASE_URL; ?>/admin/historial_mensual.php">
+                                            <i class="fas fa-history me-2"></i> Historial mensual
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a class="dropdown-item" href="<?php echo BASE_URL; ?>/admin/dashboard.php">
                                             <i class="fas fa-tachometer-alt me-2"></i> Panel
                                         </a>
@@ -160,6 +170,11 @@ require_once __DIR__ . '/functions.php';
             </div>
         </div>
     </nav>
+
+    <!-- Variable global para JavaScript -->
+    <script>
+        const baseUrl = '<?php echo BASE_URL; ?>';
+    </script>
 
     <!-- Contenido principal (flex-grow para que footer baje) -->
     <main class="flex-grow-1">
