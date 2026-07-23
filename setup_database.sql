@@ -76,3 +76,15 @@ ON DUPLICATE KEY UPDATE password = VALUES(password);
 INSERT INTO usuarios (nombre, email, password, rol) 
 VALUES ('Usuario Prueba', 'usuario@tickets.local', '$2y$10$D9LLd8b9sHZWVvGNnNJzXuRhQ5P1kI8Y7Z3wM2b9cK6pL4xJ5V0Q6', 'usuario')
 ON DUPLICATE KEY UPDATE password = VALUES(password);
+
+-- Tabla de historial de tickets
+CREATE TABLE IF NOT EXISTS historial_tickets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ticket_id INT NOT NULL,
+    usuario_id INT NOT NULL, -- Quién realizó la acción (admin o usuario)
+    tipo_accion VARCHAR(50) NOT NULL, -- Ej: 'creacion', 'reasignacion', 'cambio_estado'
+    descripcion TEXT NOT NULL, -- Texto legible (Ej: "Reasignó el ticket a Carlos Pérez")
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -898,5 +898,47 @@ function getResolvedTicketsByMonth($year, $month, $assignedUserId = null) {
         return [];
     }
 }
+/**
+ * Registrar un evento en el historial de un ticket
+ */
+function registrarHistorialTicket($ticket_id, $usuario_id, $tipo_accion, $descripcion) {
+    $pdo = getDB();
+    $sql = "INSERT INTO historial_tickets (ticket_id, usuario_id, tipo_accion, descripcion) 
+            VALUES (?, ?, ?, ?)";
+    try {
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute([$ticket_id, $usuario_id, $tipo_accion, $descripcion]);
+    } catch (Exception $e) {
+        error_log("Error al registrar historial: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Obtener la línea de tiempo/historial de un ticket específico
+ */
+function getTicketHistory($ticket_id) {
+    $pdo = getDB();
+    $sql = "SELECT 
+                h.id,
+                h.tipo_accion,
+                h.descripcion,
+                h.fecha_creacion,
+                u.nombre AS autor_nombre,
+                u.rol AS autor_rol
+            FROM historial_tickets h
+            INNER JOIN usuarios u ON h.usuario_id = u.id
+            WHERE h.ticket_id = ?
+            ORDER BY h.fecha_creacion ASC";
+            
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$ticket_id]);
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log("Error al obtener historial: " . $e->getMessage());
+        return [];
+    }
+}
 ?>
 
