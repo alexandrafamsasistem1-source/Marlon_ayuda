@@ -400,6 +400,78 @@ main {
     text-decoration: underline;
 }
 
+/* Estilos para panel de información en ver_ticket.php */
+.info-panel { padding-top: 0.15rem; }
+.info-label { color: #6c757d; font-size: 0.9rem; }
+.info-value { font-weight: 600; color: #222; font-size: 0.98rem; }
+.ticket-id { background: linear-gradient(90deg, rgba(11,107,71,0.06), rgba(11,107,71,0.02)); padding: 0.25rem 0.5rem; border-radius: 6px; color: var(--primary-color); font-weight: 800; }
+.badge-area { background: rgba(11,107,71,0.12); color: var(--primary-dark); border: 1px solid rgba(11,107,71,0.08); font-weight:700; }
+
+/* Small utility tweaks for info panel */
+.info-panel .info-value i { color: #6c757d; }
+.card .card-body .btn-outline-secondary { font-size: 0.85rem; padding: 0.25rem 0.5rem; }
+
+.sidebar-card .card-body { padding: 1.25rem; }
+.info-panel dl dt { margin-bottom: 0.45rem; font-weight:600; }
+.info-panel dl dd { margin-bottom: 0.65rem; }
+.info-panel .ticket-id { padding: 0.35rem 0.6rem; font-size: 0.95rem; }
+.sidebar-card { display: flex; flex-direction: column; min-height: 0; }
+.sidebar-card .card-body { display: flex; flex-direction: column; }
+.sidebar-card .info-panel { padding-top: 0.25rem; flex: 0 0 auto; }
+.sidebar-card.flex-grow-1 { min-height: 0; }
+
+/* New stacked layout for info rows */
+.info-row { padding: 0.6rem 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
+.info-row:last-child { border-bottom: none; }
+.info-row .info-label { color: #6c757d; font-size: 0.9rem; margin-bottom: 0.25rem; }
+.info-row .info-value { font-weight:700; color: #222; font-size: 0.98rem; }
+.info-row .info-value i { margin-right: 0.45rem; color: #6c757d; }
+
+/* Reduce padding for compact look while keeping readability */
+.sidebar-card .card-body .info-panel { padding-left: 0; padding-right: 0; }
+
+/* Decorative ticket icon to fill whitespace elegantly */
+.info-decor { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: 1rem 0; position: relative; }
+.info-decor i { font-size: 110px; color: #006547; }
+.info-decor__number { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #ffffff; font-weight: 800; font-size: 28px; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.5); pointer-events: none; }
+@media (max-width: 768px) { .info-decor i { font-size: 72px; } .info-decor__number { font-size: 18px; } }
+
+
+/* Footer inside sidebar card (botón) */
+.sidebar-card .card-footer { padding: 1rem; background: transparent; }
+.sidebar-card .card-footer .btn { box-sizing: border-box; }
+
+/* Ensure dl items wrap nicely on small widths */
+.info-panel dl dt, .info-panel dl dd { word-break: break-word; }
+
+
+
+/* Navbar spacing and uniform gaps */
+.navbar {
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+}
+.navbar .navbar-brand {
+    padding: 0.45rem 0.9rem;
+}
+.navbar .nav-link {
+    padding: 0.45rem 0.6rem;
+    color: #445050;
+}
+.navbar .nav-item + .nav-item { margin-left: 0.5rem; }
+.navbar .navbar-toggler { margin-left: .5rem; }
+
+/* Footer layout: move inline styles here to keep layout consistent */
+.site-footer { padding: 0.6rem 0; background: transparent; }
+.site-footer .footer-inner { display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-start; padding:0.5rem 0; }
+.site-footer .footer-col { flex:1 1 240px; margin-bottom:0; padding-right:0.5rem; }
+.site-footer .footer-inner h5 { margin-bottom:0.25rem; font-size:1rem; }
+.site-footer .footer-inner p, .site-footer .footer-inner ul, .site-footer .footer-inner .small { margin-bottom:0.25rem; font-size:0.85rem; }
+.site-footer .footer-inner .w-100 { border-top:1px solid rgba(0,0,0,0.06); margin-top:0.8rem; }
+.site-footer .footer-inner .footer-col ul { padding-left:0; margin:0; }
+@media (max-width:768px) { .site-footer .footer-inner { padding:0.5rem 0; } }
+
+
 .re-state-chip {
     display: inline-flex;
     align-items: center;
@@ -798,6 +870,44 @@ footer p, footer a, footer li {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #555;
+}
+
+.historial-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+}
+
+.historial-card {
+    display: flex;
+    flex-direction: column;
+    height: clamp(320px, 52vh, 430px);
+    overflow: hidden;
+}
+
+.historial-card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0 !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.historial-empty-state {
+    margin: auto 0;
+}
+
+@media (max-width: 768px) {
+    .historial-card {
+        height: clamp(280px, 40vh, 340px);
+    }
+
+    .historial-scroll {
+        max-height: none;
+    }
 }
 
 /* Strong overrides to ensure fresh palette (uses !important to bypass any cached rules) */
