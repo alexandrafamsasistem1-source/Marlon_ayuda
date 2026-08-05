@@ -28,8 +28,8 @@ require_once __DIR__ . '/functions.php';
 </head>
 <body class="d-flex flex-column min-vh-100">
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-        <div class="container-fluid">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+        <div class="container">
             <a class="navbar-brand" href="<?php echo BASE_URL; ?>/">
                 <i class="fas fa-ticket-alt"></i> Tickets Ayuda
             </a>

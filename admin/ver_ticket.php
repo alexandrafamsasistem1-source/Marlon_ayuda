@@ -324,35 +324,37 @@ include __DIR__ . '/../includes/header.php';
             </div>
 
             <!-- 2. Tarjeta: Historial de Cambios -->
-            <div class="card shadow mb-4">
+            <div class="card shadow mb-4 historial-card">
                 <div class="card-header text-white" style="background-color: #0c5737;">
                     <h5 class="mb-0" style="font-size: 1.05rem;">
                         <i class="fas fa-history me-1"></i> Historial de Cambios
                     </h5>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body historial-card-body">
                     <?php if (empty($historial)): ?>
-                        <div class="p-3 text-muted small text-center">
+                        <div class="p-3 text-muted small text-center historial-empty-state">
                             No hay registros en la bitácora de este ticket.
                         </div>
                     <?php else: ?>
-                        <div class="list-group list-group-flush">
-                            <?php foreach ($historial as $evento): ?>
-                                <div class="list-group-item px-3 py-2">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <strong class="small text-dark">
-                                            <?php echo sanitize($evento['autor_nombre'] ?? 'Sistema'); ?>
-                                        </strong>
-                                        <span class="badge bg-light text-dark border" style="font-size: 0.7rem;">
-                                            <?php echo date('d/m/Y H:i', strtotime($evento['fecha_creacion'])); ?>
-                                        </span>
+                        <div class="historial-scroll">
+                            <div class="list-group list-group-flush">
+                                <?php foreach ($historial as $evento): ?>
+                                    <div class="list-group-item px-3 py-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <strong class="small text-dark">
+                                                <?php echo sanitize($evento['autor_nombre'] ?? 'Sistema'); ?>
+                                            </strong>
+                                            <span class="badge bg-light text-dark border" style="font-size: 0.7rem;">
+                                                <?php echo date('d/m/Y H:i', strtotime($evento['fecha_creacion'])); ?>
+                                            </span>
+                                        </div>
+                                        <div class="text-secondary small mt-1" style="font-size: 0.85rem;">
+                                            <i class="fas fa-angle-right text-muted me-1"></i>
+                                            <?php echo sanitize($evento['descripcion']); ?>
+                                        </div>
                                     </div>
-                                    <div class="text-secondary small mt-1" style="font-size: 0.85rem;">
-                                        <i class="fas fa-angle-right text-muted me-1"></i>
-                                        <?php echo sanitize($evento['descripcion']); ?>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>

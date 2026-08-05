@@ -56,13 +56,13 @@ if (!empty($ticket['area'])) {
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
 <div class="row">
-    <div class="col-lg-8">
+    <div class="col-lg-9">
         <!-- Información del Ticket -->
         <div class="card shadow mb-4">
             <div class="card-header bg-primary text-white">
                 <div class="d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">
-                        <i class="fas fa-ticket-alt"></i> Ticket #<?php echo $ticket['id']; ?>
+                        <i class="fas fa-ticket-alt"></i> Ticket 
                     </h4>
                     <span class="badge bg-light text-dark">
                         <?php echo date('d/m/Y H:i', strtotime($ticket['fecha_creacion'])); ?>
@@ -113,7 +113,7 @@ if (!empty($ticket['area'])) {
                         <small class="text-muted">Asignado a:</small><br>
                         <?php if ($ticket['asignado_a']): ?>
                             <strong><?php echo sanitize($ticket['asignado_nombre']); ?></strong> 
-                            <span class="badge bg-info">Admin</span>
+                           
                         <?php else: ?>
                             <em class="text-muted">No asignado</em>
                         <?php endif; ?>
@@ -151,7 +151,7 @@ if (!empty($ticket['area'])) {
                 <?php endif; ?>
 
                 <small class="text-muted d-block mt-2">
-                    Este chat es solo de lectura para usuarios.
+                    Este chat es solo de lectura .
                 </small>
             </div>
         </div>
@@ -159,34 +159,52 @@ if (!empty($ticket['area'])) {
     </div>
 
     <!-- Sidebar -->
-    <div class="col-lg-4">
-        <div class="card shadow mb-3">
-            <div class="card-header bg-secondary text-white">
+    <div class="col-lg-3 d-flex flex-column">
+        <div class="card shadow mb-3 flex-grow-1 sidebar-card">
+            <div class="card-header text-white">
                 <h5 class="mb-0">Información</h5>
             </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <small class="text-muted">ID del Ticket</small>
-                    <p class="mb-0"><code>#<?php echo $ticket['id']; ?></code></p>
+            <div class="card-body d-flex flex-column">
+                <div class="info-panel flex-grow-1">
+                    <div class="info-row">
+                        <div class="info-label">ID del Ticket</div>
+                        <div class="info-value d-flex align-items-center gap-2">
+                            <code class="ticket-id">#<?php echo $ticket['id']; ?></code>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('#<?php echo $ticket['id']; ?>')" title="Copiar ID">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-label">Área</div>
+                        <div class="info-value">
+                            <span class="badge badge-area"><?php echo sanitize($area); ?></span>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-label">Fecha de Creación</div>
+                        <div class="info-value"><i class="far fa-calendar-alt text-muted me-2"></i><?php echo date('d/m/Y H:i:s', strtotime($ticket['fecha_creacion'])); ?></div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-label">Última Actualización</div>
+                        <div class="info-value"><i class="fas fa-history text-muted me-2"></i><?php echo date('d/m/Y H:i:s', strtotime($ticket['fecha_ultima_actualizacion'])); ?></div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <small class="text-muted">Área</small>
-                    <p class="mb-0"><strong><?php echo sanitize($area); ?></strong></p>
-                </div>
-                <div class="mb-3">
-                    <small class="text-muted">Fecha de Creación</small>
-                    <p class="mb-0"><?php echo date('d/m/Y H:i:s', strtotime($ticket['fecha_creacion'])); ?></p>
-                </div>
-                <div class="mb-3">
-                    <small class="text-muted">Última Actualización</small>
-                    <p class="mb-0"><?php echo date('d/m/Y H:i:s', strtotime($ticket['fecha_ultima_actualizacion'])); ?></p>
+
+                <div class="info-decor" aria-hidden="true">
+                    <i class="fas fa-ticket-alt" aria-hidden="true"></i>
+                    <div class="info-decor__number"><?php echo $ticket['id']; ?></div>
                 </div>
             </div>
+            <div class="card-footer bg-white border-0 pt-0">
+                <a href="<?php echo BASE_URL; ?>/usuario/dashboard.php" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
         </div>
-
-        <a href="<?php echo BASE_URL; ?>/usuario/dashboard.php" class="btn btn-secondary w-100">
-            <i class="fas fa-arrow-left"></i> Volver al Dashboard
-        </a>
     </div>
 </div>
 
