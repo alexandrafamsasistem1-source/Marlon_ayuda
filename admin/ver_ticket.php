@@ -32,6 +32,21 @@ if (!$ticket) {
 }
 
 $urgencia_actual = $ticket['urgencia'] ?? 'Media';
+$estadoClass = 're-state-chip re-state-chip--default';
+switch($ticket['estado'] ?? '') {
+    case 'Nuevo':
+        $estadoClass = 're-state-chip re-state-chip--nuevo';
+        break;
+    case 'En proceso':
+        $estadoClass = 're-state-chip re-state-chip--proceso';
+        break;
+    case 'Resuelto':
+        $estadoClass = 're-state-chip re-state-chip--resuelto';
+        break;
+    case 'Cerrado':
+        $estadoClass = 're-state-chip re-state-chip--cerrado';
+        break;
+}
 $respuestas = getTicketResponses($ticket_id);
 $admins = getAllAdmins();
 
@@ -114,6 +129,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $error = $error ?: 'Error al actualizar el ticket.';
             }
         }
+    // Acción: Eliminar respuesta
+    } elseif ($_POST['action'] === 'delete_response') {
+        $response_id = isset($_POST['response_id']) ? (int)$_POST['response_id'] : 0;
+        if ($response_id <= 0) {
+            $error = 'ID de respuesta inválido.';
+        } else {
+            $delRes = deleteResponse($response_id, $admin_id);
+            if ($delRes['success']) {
+                $success = 'Respuesta eliminada correctamente.';
+                $respuestas = getTicketResponses($ticket_id);
+                $_POST = [];
+            } else {
+                $error = $delRes['error'] ?? 'Error al eliminar la respuesta.';
+            }
+        }
     // Acción: Responder Ticket
     } elseif ($_POST['action'] === 'responder') {
         $mensaje = trim($_POST['mensaje'] ?? '');
@@ -190,7 +220,7 @@ include __DIR__ . '/../includes/header.php';
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <span class="text-muted d-block small">Estado Actual:</span>
-                            <span class="badge bg-secondary px-3 py-2 mt-1"><?php echo sanitize($ticket['estado']); ?></span>
+                            <span class="<?php echo $estadoClass; ?> px-3 py-2 mt-1"><?php echo sanitize($ticket['estado']); ?></span>
                         </div>
                         <div class="col-md-6">
                             <span class="text-muted d-block small">Ubicación:</span>
@@ -208,7 +238,7 @@ include __DIR__ . '/../includes/header.php';
                             <span class="text-muted d-block small">Asignado a:</span>
                             <strong class="text-dark"><?php echo sanitize($ticket['asignado_nombre'] ?? 'Sin asignar'); ?></strong>
                             <?php if (!empty($ticket['asignado_nombre'])): ?>
-                                <span class="badge bg-info text-dark ms-1">Admin</span>
+                               
                             <?php endif; ?>
                         </div>
                     </div>
@@ -226,23 +256,30 @@ include __DIR__ . '/../includes/header.php';
                   
                     <!-- Conversación / Mensajes -->
                     <h5 class="fw-bold mb-3">Conversación</h5>
-                    <div class="mb-4">
+                    <div class="conversation-section mb-4">
                         <?php if (empty($respuestas)): ?>
                             <div class="alert alert-light border text-muted">No hay mensajes en esta conversación aún.</div>
                         <?php else: ?>
-                            <?php foreach ($respuestas as $resp): ?>
-                                <div class="card mb-2 bg-light border-0">
-                                    <div class="card-body p-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <strong class="text-dark">
-                                                <?php echo sanitize($resp['autor_nombre'] ?? $resp['usuario_nombre'] ?? $resp['nombre'] ?? 'Usuario'); ?>
-                                            </strong>
-                                            <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($resp['fecha_creacion'])); ?></small>
+                                <?php foreach ($respuestas as $resp): ?>
+                                    <div class="card mb-2 bg-light border-0">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <strong class="text-dark"><?php echo sanitize($resp['autor_nombre'] ?? $resp['usuario_nombre'] ?? $resp['nombre'] ?? 'Usuario'); ?></strong>
+                                                    <div class="d-flex gap-2 align-items-center">
+                                                        <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($resp['fecha_creacion'])); ?></small>
+                                                        <form method="POST" onsubmit="return confirm('¿Eliminar esta respuesta?');" class="m-0 p-0">
+                                                            <input type="hidden" name="action" value="delete_response">
+                                                            <input type="hidden" name="response_id" value="<?php echo (int)$resp['id']; ?>">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar respuesta">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                                <p class="mb-0 text-secondary"><?php echo nl2br(sanitize($resp['mensaje'])); ?></p>
+                                            </div>
                                         </div>
-                                        <p class="mb-0 text-secondary"><?php echo nl2br(sanitize($resp['mensaje'])); ?></p>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
+                                <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
 
@@ -253,10 +290,13 @@ include __DIR__ . '/../includes/header.php';
                             <textarea class="form-control" name="mensaje" rows="3" placeholder="Escribe tu respuesta aquí..." required></textarea>
                         </div>
                         <div class="d-flex gap-2">
+                            <a href="<?php echo BASE_URL; ?>/admin/dashboard.php" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Volver
+                            </a>
                             <button type="submit" class="btn text-white fw-bold px-4" style="background-color: #0c5737;">
                                 <i class="fas fa-paper-plane me-1"></i> Enviar Respuesta
                             </button>
-                            <button type="reset" class="btn btn-light border">Cancelar</button>
+                            
                         </div>
                     </form>
 
@@ -360,10 +400,8 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
 
-            <!-- 3. Botón Volver -->
-            <a href="<?php echo BASE_URL; ?>/admin/dashboard.php" class="btn btn-secondary w-100 mb-4">
-                <i class="fas fa-arrow-left me-1"></i> Volver
-            </a>
+            <!-- 3. (Botón movido arriba, se dejó este espacio vacío intencionalmente) -->
+            <div style="height:0;margin-bottom:0;"></div>
 
         </div>
     </div>

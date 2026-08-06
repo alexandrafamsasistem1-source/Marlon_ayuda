@@ -55,7 +55,7 @@ if (!empty($ticket['area'])) {
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<div class="row">
+<div class="row ticket-row">
     <div class="col-lg-9">
         <!-- Información del Ticket -->
         <div class="card shadow mb-4">
@@ -135,15 +135,15 @@ if (!empty($ticket['area'])) {
                         Aún no hay respuestas del equipo de soporte.
                     </div>
                 <?php else: ?>
-                    <div class="list-group">
+                    <div class="responses-green">
                         <?php foreach ($respuestas_admin as $respuesta): ?>
-                            <div class="list-group-item list-group-item-success">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <strong><?php echo sanitize($respuesta['usuario_nombre']); ?></strong>
-                                    <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($respuesta['fecha_creacion'])); ?></small>
-                                </div>
-                                <div class="mt-1">
-                                    <?php echo nl2br(sanitize($respuesta['mensaje'])); ?>
+                            <div class="card mb-2 bg-transparent border-0">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <strong class="text-dark"><?php echo sanitize($respuesta['usuario_nombre']); ?></strong>
+                                        <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($respuesta['fecha_creacion'])); ?></small>
+                                    </div>
+                                    <p class="mb-0 text-secondary"><?php echo nl2br(sanitize($respuesta['mensaje'])); ?></p>
                                 </div>
                             </div>
                         <?php endforeach; ?>

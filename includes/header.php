@@ -88,9 +88,9 @@ require_once __DIR__ . '/functions.php';
                                                     </a>
                                                     <div class="d-flex gap-1 flex-shrink-0">
                                                         <?php if (!$n['leida']): ?>
-                                                            <span class="badge bg-danger align-self-center" style="font-size: 0.65rem;">Nuevo</span>
+                                                            <span class="badge notif-badge-new align-self-center">Nuevo</span>
                                                         <?php endif; ?>
-                                                        <button class="btn btn-sm btn-link text-danger p-0 mark-as-read-btn" title="Marcar como leída" data-notif-id="<?php echo (int)$n['id']; ?>">
+                                                        <button class="btn btn-sm notif-close-btn mark-as-read-btn" title="Marcar como leída" aria-label="Marcar como leída" data-notif-id="<?php echo (int)$n['id']; ?>">
                                                             <i class="fas fa-times"></i>
                                                         </button>
                                                     </div>

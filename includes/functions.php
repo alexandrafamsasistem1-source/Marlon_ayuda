@@ -661,6 +661,44 @@ function getTicketResponses($ticket_id) {
 }
 
 /**
+ * Eliminar una respuesta por su id (solo admins)
+ */
+function deleteResponse($response_id, $actor_id) {
+    $pdo = getDB();
+
+    // Verificar rol del actor
+    $stmtRol = $pdo->prepare('SELECT rol FROM usuarios WHERE id = ? AND activo = 1 LIMIT 1');
+    $stmtRol->execute([$actor_id]);
+    $rol = $stmtRol->fetchColumn();
+    if (!in_array($rol, ['admin', 'superadmin'], true)) {
+        return ['success' => false, 'error' => 'No autorizado'];
+    }
+
+    // Obtener ticket_id para registro de historial
+    $stmt = $pdo->prepare('SELECT ticket_id FROM respuestas_ticket WHERE id = ? LIMIT 1');
+    $stmt->execute([$response_id]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return ['success' => false, 'error' => 'Respuesta no encontrada'];
+    }
+    $ticket_id = $row['ticket_id'];
+
+    // Borrar la respuesta
+    $del = $pdo->prepare('DELETE FROM respuestas_ticket WHERE id = ?');
+    if ($del->execute([$response_id])) {
+        // Actualizar fecha de ticket
+        $pdo->prepare('UPDATE tickets SET fecha_ultima_actualizacion = NOW() WHERE id = ?')->execute([$ticket_id]);
+        // Registrar historial
+        if (function_exists('registrarHistorialTicket')) {
+            registrarHistorialTicket($ticket_id, $actor_id, 'eliminar_respuesta', 'Eliminó una respuesta en la conversación');
+        }
+        return ['success' => true];
+    }
+
+    return ['success' => false, 'error' => 'Error al eliminar respuesta'];
+}
+
+/**
  * Contar tickets totales
  */
 function countTotalTickets() {
