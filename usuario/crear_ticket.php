@@ -28,8 +28,9 @@ $success = '';
 
 // Procesar formulario
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre = trim($_POST['nombre'] ?? '');
-    $gmail = trim($_POST['gmail'] ?? '');
+    $usuario = getUserById($usuario_id);
+    $nombre = trim($usuario['nombre'] ?? '');
+    $gmail = trim($usuario['email'] ?? '');
     $asunto = trim($_POST['asunto'] ?? '');
     $descripcion = trim($_POST['descripcion'] ?? '');
     $area = trim($_POST['area'] ?? 'Administracion');
@@ -117,16 +118,18 @@ $usuario = getUserById($usuario_id);
                                 <i class="fas fa-user"></i> Nombre Completo:
                             </label>
                             <input type="text" class="form-control" id="nombre" name="nombre"
-                                   value="<?php echo isset($_POST['nombre']) ? sanitize($_POST['nombre']) : sanitize($usuario['nombre'] ?? ''); ?>"
-                                   required>
+                                   value="<?php echo sanitize($usuario['nombre'] ?? ''); ?>"
+                                   readonly required>
+                            
                         </div>
                         <div class="col-md-6">
                             <label for="gmail" class="form-label">
                                 <i class="fas fa-envelope"></i> Email:
                             </label>
                             <input type="email" class="form-control" id="gmail" name="gmail"
-                                   value="<?php echo isset($_POST['gmail']) ? sanitize($_POST['gmail']) : sanitize($usuario['email'] ?? ''); ?>"
-                                   required>
+                                   value="<?php echo sanitize($usuario['email'] ?? ''); ?>"
+                                   readonly required>
+                            
                         </div>
                     </div>
 

@@ -88,3 +88,19 @@ CREATE TABLE IF NOT EXISTS historial_tickets (
     FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- Tabla para la cola de correos--optimisacion de envios de correos
+CREATE TABLE IF NOT EXISTS cola_correos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    destinatario VARCHAR(150) NOT NULL,
+    asunto VARCHAR(255) NOT NULL,
+    cuerpo LONGTEXT NOT NULL,
+    estado ENUM('pendiente', 'procesando', 'enviado', 'fallido') DEFAULT 'pendiente',
+    intentos TINYINT UNSIGNED DEFAULT 0,
+    max_intentos TINYINT UNSIGNED DEFAULT 3,
+    ultimo_error TEXT NULL,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_procesado TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_estado_intentos (estado, intentos)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

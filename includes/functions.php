@@ -978,5 +978,16 @@ function getTicketHistory($ticket_id) {
         return [];
     }
 }
+function encolarCorreo(PDO $pdo, string $destinatario, string $asunto, string $cuerpo): bool {
+    $sql = "INSERT INTO cola_correos (destinatario, asunto, cuerpo, estado) 
+            VALUES (:destinatario, :asunto, :cuerpo, 'pendiente')";
+    
+    $stmt = $pdo->prepare($sql);
+    return $stmt->execute([
+        ':destinatario' => filter_var($destinatario, FILTER_SANITIZE_EMAIL),
+        ':asunto'       => trim($asunto),
+        ':cuerpo'       => $cuerpo
+    ]);
+}
 ?>
 
