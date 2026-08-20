@@ -4,6 +4,7 @@ use PHPMailer\PHPMailer\Exception;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/functions.php';
 
 if (!class_exists('TransportFactory')) {
     class TransportFactory {
@@ -28,12 +29,64 @@ TransportFactory::setConfig('gmail', [
 ]);
 
 /**
+ * Obtener destinatarios válidos para notificaciones de tickets.
+ */
+function getTicketNotificationRecipients(): array {
+    $pdo = getDB();
+    $recipients = [];
+
+    if (defined('MAIL_ADMIN_OVERRIDE') && trim((string)MAIL_ADMIN_OVERRIDE) !== '') {
+        $overrideEmails = array_filter(array_map('trim', explode(',', (string)MAIL_ADMIN_OVERRIDE)), 'isValidEmail');
+        $recipients = array_values(array_unique($overrideEmails));
+    }
+
+    if (empty($recipients)) {
+        $stmt = $pdo->prepare('SELECT email FROM usuarios WHERE rol IN ("admin", "superadmin") AND activo = 1 AND email IS NOT NULL AND email <> ""');
+        $stmt->execute();
+        $emails = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        foreach ($emails as $email) {
+            $email = trim((string)$email);
+            if (isValidEmail($email)) {
+                $recipients[] = $email;
+            }
+        }
+
+        $recipients = array_values(array_unique($recipients));
+    }
+
+    return $recipients;
+}
+
+/**
+ * Encola un correo del ticket usando el email del creador como referencia.
+ */
+function queueTicketNotificationEmail(string $creatorEmail, string $subject, string $body): bool {
+    if (!defined('MAIL_ENABLED') || !MAIL_ENABLED) {
+        return false;
+    }
+
+    $pdo = getDB();
+    $creatorEmail = trim((string)$creatorEmail);
+
+    if ($creatorEmail === '' || !isValidEmail($creatorEmail)) {
+        error_log('No se pudo encolar el ticket porque el email del creador es inválido.');
+        return false;
+    }
+
+    $stmt = $pdo->prepare("\n        INSERT INTO cola_correos (destinatario, asunto, cuerpo, estado, intentos)\n        VALUES (:destinatario, :asunto, :cuerpo, 'pendiente', 0)\n    ");
+
+    return $stmt->execute([
+        ':destinatario' => $creatorEmail,
+        ':asunto' => trim($subject),
+        ':cuerpo' => $body,
+    ]);
+}
+
+/**
  * Guarda el correo en la cola sin bloquear la navegación del usuario.
  */
 function notificarNuevoTicket($nombre, $gmail, $asunto, $descripcion, $ubicacion, $area, $ticketId = null) {
-    global $pdo;
-
-    $destinatario = 'alexandrafams.asistem1@gmail.com';
     $idVisual = $ticketId ? "#{$ticketId}" : "Nuevo";
     $asuntoCorreo = "⚠️ Ticket de Ayuda Creado [{$idVisual}] - {$asunto}";
 
@@ -58,21 +111,7 @@ function notificarNuevoTicket($nombre, $gmail, $asunto, $descripcion, $ubicacion
         </div>
     ";
 
-    try {
-        $stmt = $pdo->prepare("
-            INSERT INTO cola_correos (destinatario, asunto, cuerpo, estado, intentos) 
-            VALUES (:destinatario, :asunto, :cuerpo, 'pendiente', 0)
-        ");
-
-        return $stmt->execute([
-            ':destinatario' => $destinatario,
-            ':asunto'       => $asuntoCorreo,
-            ':cuerpo'       => $cuerpoHTML
-        ]);
-    } catch (PDOException $e) {
-        error_log("Error al encolar correo en BD: " . $e->getMessage());
-        return false;
-    }
+        return queueTicketNotificationEmail($gmail, $asuntoCorreo, $cuerpoHTML);
 }
 
 /**

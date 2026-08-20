@@ -87,7 +87,7 @@ $tickets = getUserTickets($usuario_id, 100, 0);
                             <thead class="table-light">
                                 <tr>
                                     <th style="width:60px">ID</th>
-                                    <th>Usuario / Email</th>
+                                    <th>Usuario</th>
                                     <th>Asunto</th>
                                     <th style="width:140px">Ubicación</th>
                                     <th style="width:120px">Área</th>

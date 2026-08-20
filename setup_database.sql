@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     password VARCHAR(255) NOT NULL,
     rol ENUM('usuario', 'admin') NOT NULL DEFAULT 'usuario',
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    activo TINYINT DEFAULT 1
+    activo TINYINT DEFAULT 1,
+    debe_cambiar_password TINYINT(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabla de tickets

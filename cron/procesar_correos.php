@@ -16,6 +16,12 @@ require_once __DIR__ . '/../includes/mail_helper.php';
 $limiteLote = 10;
 
 try {
+        $destinatariosAdmin = getTicketNotificationRecipients();
+
+        if (empty($destinatariosAdmin)) {
+            throw new RuntimeException('No hay destinatarios admin válidos para procesar la cola de tickets.');
+        }
+
     // 1. Obtener correos pendientes que no hayan superado el máximo de intentos (usando fecha_creacion)
     $stmt = $pdo->prepare("
         SELECT id, destinatario, asunto, cuerpo, intentos, max_intentos 
@@ -49,15 +55,26 @@ try {
         $updateEstado->execute([$nuevoIntento, $id]);
 
         // 3. Intentar el envío SMTP
-        $resultado = enviarCorreoSMTP(
-            $correo['destinatario'],
-            $correo['asunto'],
-            $correo['cuerpo']
-        );
+            // 3. Intentar el envío SMTP hacia todos los admins activos
+            $esExitoso = false;
+            $errores = [];
 
-        // Evaluamos si devolvió boolean true o arreglo con ['exito' => true]
-        $esExitoso = is_array($resultado) ? ($resultado['exito'] ?? false) : (bool)$resultado;
-        $mensajeError = is_array($resultado) ? ($resultado['error'] ?? 'Error desconocido') : 'Error al enviar por SMTP';
+            foreach ($destinatariosAdmin as $destinatarioAdmin) {
+                $resultado = enviarCorreoSMTP(
+                    $destinatarioAdmin,
+                    $correo['asunto'],
+                    $correo['cuerpo']
+                );
+
+                $resultadoExitoso = is_array($resultado) ? ($resultado['exito'] ?? false) : (bool)$resultado;
+                if ($resultadoExitoso) {
+                    $esExitoso = true;
+                } else {
+                    $errores[] = is_array($resultado) ? ($resultado['error'] ?? 'Error desconocido') : 'Error al enviar por SMTP';
+                }
+            }
+
+            $mensajeError = empty($errores) ? 'Error al enviar por SMTP' : implode(' | ', array_unique($errores));
 
         // 4. Actualizar según resultado usando fecha_procesado y ultimo_error
         if ($esExitoso) {

@@ -55,6 +55,14 @@ function requireLogin() {
         header('Location: ' . BASE_URL . '/auth/login.php');
         exit();
     }
+
+    if ((isset($_SESSION['debe_cambiar_password']) && (int)$_SESSION['debe_cambiar_password'] === 1)) {
+        $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
+        if (!in_array($currentPage, ['cambiar_password.php', 'logout.php'], true)) {
+            header('Location: ' . BASE_URL . '/auth/cambiar_password.php');
+            exit;
+        }
+    }
 }
 
 /**
@@ -150,7 +158,7 @@ function getUserByEmail($email) {
 /**
  * Crear nuevo usuario
  */
-function createUser($nombre, $email, $password, $rol = 'usuario') {
+function createUser($nombre, $email, $password, $rol = 'usuario', $debe_cambiar_password = 1) {
     $pdo = getDB();
 
     if (getUserByEmail($email)) {
@@ -158,9 +166,9 @@ function createUser($nombre, $email, $password, $rol = 'usuario') {
     }
 
     $passwordHashed = hashPassword($password);
-    $stmt = $pdo->prepare('INSERT INTO usuarios (nombre, email, password, rol) VALUES (?, ?, ?, ?)');
+    $stmt = $pdo->prepare('INSERT INTO usuarios (nombre, email, password, rol, debe_cambiar_password) VALUES (?, ?, ?, ?, ?)');
 
-    if ($stmt->execute([$nombre, $email, $passwordHashed, $rol])) {
+    if ($stmt->execute([$nombre, $email, $passwordHashed, $rol, (int)$debe_cambiar_password])) {
         return ['success' => true, 'usuario_id' => $pdo->lastInsertId()];
     } else {
         return ['success' => false, 'error' => 'Error al crear usuario'];
@@ -987,6 +995,16 @@ function encolarCorreo(PDO $pdo, string $destinatario, string $asunto, string $c
         ':destinatario' => filter_var($destinatario, FILTER_SANITIZE_EMAIL),
         ':asunto'       => trim($asunto),
         ':cuerpo'       => $cuerpo
+    ]);
+}
+
+function updatePasswordAndClearFlag($usuario_id, $nueva_password) {
+    $pdo = getDB();
+    $passwordHash = password_hash($nueva_password, PASSWORD_BCRYPT);
+    $stmt = $pdo->prepare('UPDATE usuarios SET password = :password, debe_cambiar_password = 0 WHERE id = :id');
+    return $stmt->execute([
+        ':password' => $passwordHash,
+        ':id' => (int)$usuario_id,
     ]);
 }
 ?>

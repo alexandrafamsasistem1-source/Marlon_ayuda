@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $nombreTicket = trim($usuarioActual['nombre'] ?? $nombre);
             $emailTicket = trim($usuarioActual['email'] ?? $gmail);
 
-            // Enviar notificación automática al superadmin usando el helper central de correo
+            // Encolar notificación automática para todos los destinatarios válidos de tickets
             $mailEnviado = notificarNuevoTicket(
                 $nombreTicket,
                 $emailTicket,
@@ -79,7 +79,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 error_log('No se pudo enviar la notificación automática de nuevo ticket al superadmin.');
             }
 
-            echo '<script>alert("¡Ticket creado exitosamente!"); window.location.href="' . BASE_URL . '/usuario/dashboard.php";</script>';
+            echo '<script>
+                document.addEventListener("DOMContentLoaded", function () {
+                    const toast = document.createElement("div");
+                    toast.className = "ticket-success-toast";
+                    toast.innerHTML = \'<div class="ticket-toast-icon"><i class="fas fa-check-circle"></i></div><div class="ticket-toast-content"><strong>¡Ticket creado exitosamente!</strong><span>Tu solicitud fue enviada correctamente.</span></div>\';
+                    document.body.appendChild(toast);
+
+                    requestAnimationFrame(function () {
+                        toast.classList.add("show");
+                    });
+
+                    setTimeout(function () {
+                        toast.classList.remove("show");
+                        setTimeout(function () {
+                            window.location.href = "' . BASE_URL . '/usuario/dashboard.php";
+                        }, 250);
+                    }, 2200);
+                });
+            </script>';
             exit();
         } else {
             $error = $result['error'] ?? 'Error al crear el ticket.';
