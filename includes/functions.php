@@ -55,6 +55,14 @@ function requireLogin() {
         header('Location: ' . BASE_URL . '/auth/login.php');
         exit();
     }
+
+    if ((isset($_SESSION['debe_cambiar_password']) && (int)$_SESSION['debe_cambiar_password'] === 1)) {
+        $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
+        if (!in_array($currentPage, ['cambiar_password.php', 'logout.php'], true)) {
+            header('Location: ' . BASE_URL . '/auth/cambiar_password.php');
+            exit;
+        }
+    }
 }
 
 /**
@@ -150,7 +158,7 @@ function getUserByEmail($email) {
 /**
  * Crear nuevo usuario
  */
-function createUser($nombre, $email, $password, $rol = 'usuario') {
+function createUser($nombre, $email, $password, $rol = 'usuario', $debe_cambiar_password = 1) {
     $pdo = getDB();
 
     if (getUserByEmail($email)) {
@@ -158,9 +166,9 @@ function createUser($nombre, $email, $password, $rol = 'usuario') {
     }
 
     $passwordHashed = hashPassword($password);
-    $stmt = $pdo->prepare('INSERT INTO usuarios (nombre, email, password, rol) VALUES (?, ?, ?, ?)');
+    $stmt = $pdo->prepare('INSERT INTO usuarios (nombre, email, password, rol, debe_cambiar_password) VALUES (?, ?, ?, ?, ?)');
 
-    if ($stmt->execute([$nombre, $email, $passwordHashed, $rol])) {
+    if ($stmt->execute([$nombre, $email, $passwordHashed, $rol, (int)$debe_cambiar_password])) {
         return ['success' => true, 'usuario_id' => $pdo->lastInsertId()];
     } else {
         return ['success' => false, 'error' => 'Error al crear usuario'];
@@ -661,6 +669,44 @@ function getTicketResponses($ticket_id) {
 }
 
 /**
+ * Eliminar una respuesta por su id (solo admins)
+ */
+function deleteResponse($response_id, $actor_id) {
+    $pdo = getDB();
+
+    // Verificar rol del actor
+    $stmtRol = $pdo->prepare('SELECT rol FROM usuarios WHERE id = ? AND activo = 1 LIMIT 1');
+    $stmtRol->execute([$actor_id]);
+    $rol = $stmtRol->fetchColumn();
+    if (!in_array($rol, ['admin', 'superadmin'], true)) {
+        return ['success' => false, 'error' => 'No autorizado'];
+    }
+
+    // Obtener ticket_id para registro de historial
+    $stmt = $pdo->prepare('SELECT ticket_id FROM respuestas_ticket WHERE id = ? LIMIT 1');
+    $stmt->execute([$response_id]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return ['success' => false, 'error' => 'Respuesta no encontrada'];
+    }
+    $ticket_id = $row['ticket_id'];
+
+    // Borrar la respuesta
+    $del = $pdo->prepare('DELETE FROM respuestas_ticket WHERE id = ?');
+    if ($del->execute([$response_id])) {
+        // Actualizar fecha de ticket
+        $pdo->prepare('UPDATE tickets SET fecha_ultima_actualizacion = NOW() WHERE id = ?')->execute([$ticket_id]);
+        // Registrar historial
+        if (function_exists('registrarHistorialTicket')) {
+            registrarHistorialTicket($ticket_id, $actor_id, 'eliminar_respuesta', 'Eliminó una respuesta en la conversación');
+        }
+        return ['success' => true];
+    }
+
+    return ['success' => false, 'error' => 'Error al eliminar respuesta'];
+}
+
+/**
  * Contar tickets totales
  */
 function countTotalTickets() {
@@ -939,6 +985,27 @@ function getTicketHistory($ticket_id) {
         error_log("Error al obtener historial: " . $e->getMessage());
         return [];
     }
+}
+function encolarCorreo(PDO $pdo, string $destinatario, string $asunto, string $cuerpo): bool {
+    $sql = "INSERT INTO cola_correos (destinatario, asunto, cuerpo, estado) 
+            VALUES (:destinatario, :asunto, :cuerpo, 'pendiente')";
+    
+    $stmt = $pdo->prepare($sql);
+    return $stmt->execute([
+        ':destinatario' => filter_var($destinatario, FILTER_SANITIZE_EMAIL),
+        ':asunto'       => trim($asunto),
+        ':cuerpo'       => $cuerpo
+    ]);
+}
+
+function updatePasswordAndClearFlag($usuario_id, $nueva_password) {
+    $pdo = getDB();
+    $passwordHash = password_hash($nueva_password, PASSWORD_BCRYPT);
+    $stmt = $pdo->prepare('UPDATE usuarios SET password = :password, debe_cambiar_password = 0 WHERE id = :id');
+    return $stmt->execute([
+        ':password' => $passwordHash,
+        ':id' => (int)$usuario_id,
+    ]);
 }
 ?>
 

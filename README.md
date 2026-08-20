@@ -93,12 +93,12 @@ chmod -R 777 proyecto_ayuda_app/includes/  # Si es necesario para escritura
 **Apache (httpd-vhosts.conf):**
 ```apache
 <VirtualHost *:80>
-    ServerName tickets.local
-    DocumentRoot "C:/xampp/htdocs/proyecto_ayuda_app"
-    <Directory "C:/xampp/htdocs/proyecto_ayuda_app">
-        AllowOverride All
-        Require all granted
-    </Directory>
+	 ServerName tickets.local
+	 DocumentRoot "C:/xampp/htdocs/proyecto_ayuda_app"
+	 <Directory "C:/xampp/htdocs/proyecto_ayuda_app">
+		  AllowOverride All
+		  Require all granted
+	 </Directory>
 </VirtualHost>
 ```
 
@@ -115,17 +115,17 @@ chmod -R 777 proyecto_ayuda_app/includes/  # Si es necesario para escritura
 Crear en la raíz: `.htaccess`
 ```apache
 <IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteBase /
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
+	 RewriteEngine On
+	 RewriteBase /
+	 RewriteCond %{REQUEST_FILENAME} !-f
+	 RewriteCond %{REQUEST_FILENAME} !-d
+	 RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
 </IfModule>
 ```
 
 ---
 
-## � Configuración de Correo
+## 📨 Configuración de Correo
 
 El sistema ya está preparado para enviar correos al crear un ticket. La integración funciona de dos formas:
 
@@ -169,7 +169,7 @@ Si el envío falla, revisa que el host SMTP, el puerto y las credenciales sean c
 
 ---
 
-## �🔐 Credenciales de Prueba
+## 🔐 Credenciales de Prueba
 
 Una vez configurado, puedes iniciar sesión con:
 
@@ -232,43 +232,43 @@ proyecto_ayuda_app/
 ### Como Usuario Regular:
 
 1. **Registrarse o Login**
-   - Acceder a `/auth/login.php`
-   - Si no tienes cuenta, ir a `/auth/register.php`
+	- Acceder a `/auth/login.php`
+	- Si no tienes cuenta, ir a `/auth/register.php`
 
 2. **Crear Ticket**
-   - Ir a Dashboard (`/usuario/dashboard.php`)
-   - Hacer clic en "Crear Nuevo Ticket"
-   - Completar formulario (nombre, email, asunto, descripción, ubicación)
-   - Enviar
+	- Ir a Dashboard (`/usuario/dashboard.php`)
+	- Hacer clic en "Crear Nuevo Ticket"
+	- Completar formulario (nombre, email, asunto, descripción, ubicación)
+	- Enviar
 
 3. **Ver Estado**
-   - En Dashboard ves todos tus tickets
-   - Hacer clic en "Ver" para más detalles
-   - Ver respuestas del administrador
-   - Agregar más comentarios si es necesario
+	- En Dashboard ves todos tus tickets
+	- Hacer clic en "Ver" para más detalles
+	- Ver respuestas del administrador
+	- Agregar más comentarios si es necesario
 
 ### Como Administrador:
 
 1. **Login como Admin**
-   - Acceder con credenciales de admin
+	- Acceder con credenciales de admin
 
 2. **Ver Todos los Tickets**
-   - Ir al Panel Admin (`/admin/dashboard.php`)
-   - Ver conteos y estadísticas
-   - Filtrar por estado o ubicación
+	- Ir al Panel Admin (`/admin/dashboard.php`)
+	- Ver conteos y estadísticas
+	- Filtrar por estado o ubicación
 
 3. **Procesar Ticket**
-   - Hacer clic en "Ver" en un ticket
-   - Leer descripción y respuestas previas
-   - Escribir respuesta
-   - Cambiar estado (Nuevo → En proceso → Resuelto → Cerrado)
-   - Asignar a sí mismo u otro admin
-   - Guardar cambios
+	- Hacer clic en "Ver" en un ticket
+	- Leer descripción y respuestas previas
+	- Escribir respuesta
+	- Cambiar estado (Nuevo → En proceso → Resuelto → Cerrado)
+	- Asignar a sí mismo u otro admin
+	- Guardar cambios
 
 4. **Ver Reportes**
-   - Ir a `/admin/reportes.php`
-   - Ver gráficas de estado y ubicación
-   - Análisis de tickets recientes
+	- Ir a `/admin/reportes.php`
+	- Ver gráficas de estado y ubicación
+	- Análisis de tickets recientes
 
 ---
 
@@ -333,7 +333,7 @@ proyecto_ayuda_app/
 
 ---
 
-## � Sistema de Migraciones
+## 🛠️ Sistema de Migraciones
 
 Las migraciones permiten mantener versionado los cambios en la base de datos. Se encuentran en la carpeta `migrations/`:
 
@@ -353,7 +353,7 @@ O en phpMyAdmin:
 
 ---
 
-## �🛠️ Funciones Principales (includes/functions.php)
+## 🛠️ Funciones Principales (includes/functions.php)
 
 ### Autenticación
 - `isLoggedIn()` - Verificar si está logueado
@@ -398,6 +398,19 @@ O en phpMyAdmin:
 - [ ] Auditoría de cambios y historial completo
 - [ ] Asignación automática de tickets (round-robin)
 - [ ] Chat en vivo entre usuario y admin
+
+---
+
+## Cambios recientes
+
+- `usuario/ver_ticket.php`: se añadió wrapper `.responses-green` para estilizar las respuestas del equipo con aspecto "verde" apilado (solo diseño, sin lógica nueva).
+- `assets/css/style.css`: se agregó la sección `.responses-green` y ajustes de notificaciones; estilos verdes están encapsulados para no afectar otras vistas.
+- `admin/ver_ticket.php`: se implementó `conversation-section` con `max-height` y `overflow-y:auto` para scrollbar interno; se añadió la opción de eliminar respuestas para `admin`/`superadmin` (backend y frontend).
+- `includes/functions.php`: se añadió la función `deleteResponse()` para manejar eliminación segura de respuestas (verificar rol y actualizar timestamps).
+- `includes/header.php`: pequeño ajuste visual en el badge de notificaciones.
+
+Si quieres que adapte los mensajes del changelog o añada fechas/autor, dímelo y lo actualizo.
+
 - [ ] Encuestas de satisfacción post-cierre
 - [ ] Integración con Slack/Discord para notificaciones
 - [ ] 2FA (Autenticación de dos factores)

@@ -9,8 +9,13 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
-// Si ya está logueado, mostrar dashboard
+// Si ya está logueado, respetar la obligación de cambiar contraseña
 if (isLoggedIn()) {
+    if ((int)($_SESSION['debe_cambiar_password'] ?? 0) === 1) {
+        header('Location: ' . BASE_URL . '/auth/cambiar_password.php');
+        exit();
+    }
+
     if (isAdmin()) {
         include __DIR__ . '/../admin/dashboard.php';
     } else {
@@ -58,6 +63,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['nombre'] = $usuario['nombre'];
                 $_SESSION['email'] = $usuario['email'];
                 $_SESSION['rol'] = $usuario['rol'];
+                $_SESSION['debe_cambiar_password'] = (int)$usuario['debe_cambiar_password'];
+
+                if ($_SESSION['debe_cambiar_password'] === 1) {
+                    header('Location: ' . BASE_URL . '/auth/cambiar_password.php');
+                    exit;
+                }
 
                 // Redirigir al dashboard correspondiente
                 if (in_array($usuario['rol'], ['admin', 'superadmin'], true)) {

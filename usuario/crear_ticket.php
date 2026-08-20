@@ -28,8 +28,9 @@ $success = '';
 
 // Procesar formulario
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre = trim($_POST['nombre'] ?? '');
-    $gmail = trim($_POST['gmail'] ?? '');
+    $usuario = getUserById($usuario_id);
+    $nombre = trim($usuario['nombre'] ?? '');
+    $gmail = trim($usuario['email'] ?? '');
     $asunto = trim($_POST['asunto'] ?? '');
     $descripcion = trim($_POST['descripcion'] ?? '');
     $area = trim($_POST['area'] ?? 'Administracion');
@@ -63,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $nombreTicket = trim($usuarioActual['nombre'] ?? $nombre);
             $emailTicket = trim($usuarioActual['email'] ?? $gmail);
 
-            // Enviar notificación automática al superadmin usando el helper central de correo
+            // Encolar notificación automática para todos los destinatarios válidos de tickets
             $mailEnviado = notificarNuevoTicket(
                 $nombreTicket,
                 $emailTicket,
@@ -78,7 +79,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 error_log('No se pudo enviar la notificación automática de nuevo ticket al superadmin.');
             }
 
-            echo '<script>alert("¡Ticket creado exitosamente!"); window.location.href="' . BASE_URL . '/usuario/dashboard.php";</script>';
+            echo '<script>
+                document.addEventListener("DOMContentLoaded", function () {
+                    const toast = document.createElement("div");
+                    toast.className = "ticket-success-toast";
+                    toast.innerHTML = \'<div class="ticket-toast-icon"><i class="fas fa-check-circle"></i></div><div class="ticket-toast-content"><strong>¡Ticket creado exitosamente!</strong><span>Tu solicitud fue enviada correctamente.</span></div>\';
+                    document.body.appendChild(toast);
+
+                    requestAnimationFrame(function () {
+                        toast.classList.add("show");
+                    });
+
+                    setTimeout(function () {
+                        toast.classList.remove("show");
+                        setTimeout(function () {
+                            window.location.href = "' . BASE_URL . '/usuario/dashboard.php";
+                        }, 250);
+                    }, 2200);
+                });
+            </script>';
             exit();
         } else {
             $error = $result['error'] ?? 'Error al crear el ticket.';
@@ -117,16 +136,18 @@ $usuario = getUserById($usuario_id);
                                 <i class="fas fa-user"></i> Nombre Completo:
                             </label>
                             <input type="text" class="form-control" id="nombre" name="nombre"
-                                   value="<?php echo isset($_POST['nombre']) ? sanitize($_POST['nombre']) : sanitize($usuario['nombre'] ?? ''); ?>"
-                                   required>
+                                   value="<?php echo sanitize($usuario['nombre'] ?? ''); ?>"
+                                   readonly required>
+                            
                         </div>
                         <div class="col-md-6">
                             <label for="gmail" class="form-label">
                                 <i class="fas fa-envelope"></i> Email:
                             </label>
                             <input type="email" class="form-control" id="gmail" name="gmail"
-                                   value="<?php echo isset($_POST['gmail']) ? sanitize($_POST['gmail']) : sanitize($usuario['email'] ?? ''); ?>"
-                                   required>
+                                   value="<?php echo sanitize($usuario['email'] ?? ''); ?>"
+                                   readonly required>
+                            
                         </div>
                     </div>
 
