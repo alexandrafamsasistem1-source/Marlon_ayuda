@@ -239,7 +239,10 @@ $allUsers = getAllUsers(100, 0);
                                         </a>
                                         <?php if ($user['id'] !== getUserId()): ?>
                                             <button type="button" class="btn btn-danger" 
-                                                    onclick="if(confirm('¿Seguro que quieres eliminar este usuario? Se perderá toda su información.')) window.location.href='<?php echo BASE_URL; ?>/admin/crear_usuario.php?delete=<?php echo (int)$user['id']; ?>'" 
+                                                    data-swal-confirm="¿Seguro que quieres eliminar este usuario? Se perderá toda su información."
+                                                    data-swal-title="Eliminar usuario"
+                                                    data-swal-confirm-text="Sí, eliminar"
+                                                    data-swal-href="<?php echo BASE_URL; ?>/admin/crear_usuario.php?delete=<?php echo (int)$user['id']; ?>"
                                                     title="Eliminar usuario">
                                                 <i class="fas fa-trash"></i> Eliminar
                                             </button>

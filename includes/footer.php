@@ -3,6 +3,9 @@
  * Footer Bootstrap
  
  */
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 ?>
         </div>
     </main>
@@ -44,8 +47,31 @@
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Custom JS -->
     <?php $jsVersion = @filemtime(__DIR__ . '/../assets/js/main.js') ?: time(); ?>
     <script src="<?php echo BASE_URL; ?>/assets/js/main.js?v=<?php echo $jsVersion; ?>"></script>
+    <?php if (!empty($_SESSION['flash_notification']) && is_array($_SESSION['flash_notification'])): ?>
+        <?php $flash = $_SESSION['flash_notification']; unset($_SESSION['flash_notification']); ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: <?php echo json_encode($flash['tipo'] ?? 'info'); ?>,
+                    title: <?php echo json_encode($flash['titulo'] ?? ''); ?>,
+                    text: <?php echo json_encode($flash['mensaje'] ?? ''); ?>,
+                    showConfirmButton: false,
+                    timer: 2200,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                    }
+                });
+            });
+        </script>
+    <?php endif; ?>
 </body>
 </html>

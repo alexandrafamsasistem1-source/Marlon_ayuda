@@ -38,23 +38,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validaciones
     if (empty($nombre)) {
-        $error = 'El nombre es requerido.';
+        setFlash('error', 'El nombre es requerido.', 'No se pudo crear el ticket');
+        header('Location: ' . BASE_URL . '/usuario/crear_ticket.php');
+        exit;
     } elseif (empty($gmail)) {
-        $error = 'El email es requerido.';
+        setFlash('error', 'El email es requerido.', 'No se pudo crear el ticket');
+        header('Location: ' . BASE_URL . '/usuario/crear_ticket.php');
+        exit;
     } elseif (!isValidEmail($gmail)) {
-        $error = 'El email no es válido.';
+        setFlash('error', 'El email no es válido.', 'No se pudo crear el ticket');
+        header('Location: ' . BASE_URL . '/usuario/crear_ticket.php');
+        exit;
     } elseif (empty($asunto)) {
-        $error = 'El asunto es requerido.';
+        setFlash('error', 'El asunto es requerido.', 'No se pudo crear el ticket');
+        header('Location: ' . BASE_URL . '/usuario/crear_ticket.php');
+        exit;
     } elseif (strlen($asunto) < 5) {
-        $error = 'El asunto debe tener al menos 5 caracteres.';
+        setFlash('error', 'El asunto debe tener al menos 5 caracteres.', 'No se pudo crear el ticket');
+        header('Location: ' . BASE_URL . '/usuario/crear_ticket.php');
+        exit;
     } elseif (empty($descripcion)) {
-        $error = 'La descripción es requerida.';
+        setFlash('error', 'La descripción es requerida.', 'No se pudo crear el ticket');
+        header('Location: ' . BASE_URL . '/usuario/crear_ticket.php');
+        exit;
     } elseif (strlen($descripcion) < 10) {
-        $error = 'La descripción debe tener al menos 10 caracteres.';
+        setFlash('error', 'La descripción debe tener al menos 10 caracteres.', 'No se pudo crear el ticket');
+        header('Location: ' . BASE_URL . '/usuario/crear_ticket.php');
+        exit;
     } elseif (!in_array($ubicacion, ['Finca El Jardín', 'San Ignacio'])) {
-        $error = 'Debes seleccionar una ubicación válida.';
+        setFlash('error', 'Debes seleccionar una ubicación válida.', 'No se pudo crear el ticket');
+        header('Location: ' . BASE_URL . '/usuario/crear_ticket.php');
+        exit;
     } elseif (!in_array($area, ['Administracion', 'Poscosecha'])) {
-        $error = 'Debes seleccionar un área válida.';
+        setFlash('error', 'Debes seleccionar un área válida.', 'No se pudo crear el ticket');
+        header('Location: ' . BASE_URL . '/usuario/crear_ticket.php');
+        exit;
     } else {
         // Crear ticket
         $result = createTicket($usuario_id, $asunto, $descripcion, $ubicacion, $area);
@@ -79,28 +97,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 error_log('No se pudo enviar la notificación automática de nuevo ticket al superadmin.');
             }
 
-            echo '<script>
-                document.addEventListener("DOMContentLoaded", function () {
-                    const toast = document.createElement("div");
-                    toast.className = "ticket-success-toast";
-                    toast.innerHTML = \'<div class="ticket-toast-icon"><i class="fas fa-check-circle"></i></div><div class="ticket-toast-content"><strong>¡Ticket creado exitosamente!</strong><span>Tu solicitud fue enviada correctamente.</span></div>\';
-                    document.body.appendChild(toast);
-
-                    requestAnimationFrame(function () {
-                        toast.classList.add("show");
-                    });
-
-                    setTimeout(function () {
-                        toast.classList.remove("show");
-                        setTimeout(function () {
-                            window.location.href = "' . BASE_URL . '/usuario/dashboard.php";
-                        }, 250);
-                    }, 2200);
-                });
-            </script>';
+            setFlash('success', 'Tu solicitud fue enviada correctamente.', '¡Ticket creado exitosamente!');
+            header('Location: ' . BASE_URL . '/usuario/dashboard.php');
             exit();
         } else {
-            $error = $result['error'] ?? 'Error al crear el ticket.';
+            setFlash('error', $result['error'] ?? 'Error al crear el ticket.', 'No se pudo crear el ticket');
+            header('Location: ' . BASE_URL . '/usuario/crear_ticket.php');
+            exit();
         }
     }
 }
@@ -120,13 +123,6 @@ $usuario = getUserById($usuario_id);
                 </h4>
             </div>
             <div class="card-body">
-
-                <?php if (!empty($error)): ?>
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fas fa-exclamation-triangle"></i> <?php echo sanitize($error); ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <?php endif; ?>
 
                 <form method="POST" novalidate>
 

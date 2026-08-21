@@ -7,6 +7,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 if (!isLoggedIn()) {
+    setFlash('warning', 'Debes iniciar sesión para continuar.', 'Acceso requerido');
     header('Location: ' . BASE_URL . '/auth/login.php');
     exit;
 }
@@ -20,14 +21,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password_confirmar = $_POST['password_confirmar'] ?? '';
 
     if (strlen($password_nueva) < 8) {
-        $error = 'La nueva contraseña debe tener al menos 8 caracteres.';
+        setFlash('error', 'La nueva contraseña debe tener al menos 8 caracteres.', 'Contraseña inválida');
+        header('Location: ' . BASE_URL . '/auth/cambiar_password.php');
+        exit;
     } elseif ($password_nueva !== $password_confirmar) {
-        $error = 'Las contraseñas no coinciden.';
+        setFlash('error', 'Las contraseñas no coinciden.', 'Revisa los datos');
+        header('Location: ' . BASE_URL . '/auth/cambiar_password.php');
+        exit;
     } else {
         $updated = updatePasswordAndClearFlag($_SESSION['usuario_id'], $password_nueva);
 
         if ($updated) {
             $_SESSION['debe_cambiar_password'] = 0;
+            setFlash('success', 'Tu contraseña fue actualizada correctamente.', 'Contraseña actualizada');
 
             if (isAdmin()) {
                 header('Location: ' . BASE_URL . '/admin/dashboard.php');
@@ -37,7 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $error = 'No se pudo actualizar la contraseña. Inténtalo nuevamente.';
+        setFlash('error', 'No se pudo actualizar la contraseña. Inténtalo nuevamente.', 'Error');
+        header('Location: ' . BASE_URL . '/auth/cambiar_password.php');
+        exit;
     }
 }
 ?>
@@ -85,20 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <h3 class="mb-2">Cambiar contraseña</h3>
                             <p class="text-muted mb-0">Debes actualizar tu contraseña para continuar.</p>
                         </div>
-
-                        <?php if (!empty($error)): ?>
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                <i class="fas fa-exclamation-triangle me-2"></i><?php echo sanitize($error); ?>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                            </div>
-                        <?php endif; ?>
-
-                        <?php if (!empty($success)): ?>
-                            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                <i class="fas fa-check-circle me-2"></i><?php echo sanitize($success); ?>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                            </div>
-                        <?php endif; ?>
 
                         <form method="POST" novalidate>
                             <div class="mb-3">

@@ -48,6 +48,22 @@ function isSuperAdmin() {
 }
 
 /**
+ * Guardar una notificación flash en sesión.
+ */
+function setFlash($tipo, $mensaje, $titulo = '') {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $tipoPermitido = in_array($tipo, ['success', 'error', 'warning', 'info'], true) ? $tipo : 'info';
+    $_SESSION['flash_notification'] = [
+        'tipo' => $tipoPermitido,
+        'mensaje' => (string)$mensaje,
+        'titulo' => (string)$titulo,
+    ];
+}
+
+/**
  * Redirigir a login si no está autenticado
  */
 function requireLogin() {

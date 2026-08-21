@@ -2,6 +2,22 @@
  * Script JavaScript principal
  */
 
+window.originalAlert = window.alert.bind(window);
+
+window.alert = function(message) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'info',
+            title: 'Aviso',
+            text: String(message ?? ''),
+            confirmButtonText: 'Aceptar'
+        });
+        return;
+    }
+
+    return window.originalAlert ? window.originalAlert(message) : undefined;
+};
+
 // Mostrar confirmación antes de enviar formularios críticos
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -13,6 +29,50 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!confirm(message)) {
                 e.preventDefault();
                 return false;
+            }
+        });
+    });
+
+    // Confirmación elegante con SweetAlert2 para acciones destructivas
+    const swalConfirmElements = document.querySelectorAll('[data-swal-confirm]');
+    swalConfirmElements.forEach(element => {
+        element.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const message = this.dataset.swalConfirm || '¿Estás seguro?';
+            const title = this.dataset.swalTitle || 'Confirmar acción';
+            const confirmText = this.dataset.swalConfirmText || 'Sí, continuar';
+            const cancelText = this.dataset.swalCancelText || 'Cancelar';
+            const href = this.dataset.swalHref || this.getAttribute('href');
+
+            const runAction = () => {
+                if (this.tagName === 'FORM') {
+                    this.submit();
+                    return;
+                }
+
+                if (href) {
+                    window.location.href = href;
+                }
+            };
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title,
+                    text: message,
+                    showCancelButton: true,
+                    confirmButtonText: confirmText,
+                    cancelButtonText: cancelText,
+                    reverseButtons: true,
+                    focusCancel: true
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        runAction();
+                    }
+                });
+            } else if (window.originalAlert && window.confirm(message)) {
+                runAction();
             }
         });
     });
@@ -66,24 +126,17 @@ function isValidEmail(email) {
 
 // Función para mostrar notificación
 function showNotification(message, type = 'info') {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.setAttribute('role', 'alert');
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    const container = document.querySelector('main');
-    if (container) {
-        container.insertBefore(alertDiv, container.firstChild);
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: type,
+            title: type.charAt(0).toUpperCase() + type.slice(1),
+            text: message,
+            confirmButtonText: 'Aceptar'
+        });
+        return;
     }
 
-    // Auto-dismiss después de 5 segundos
-    setTimeout(() => {
-        const bsAlert = new bootstrap.Alert(alertDiv);
-        bsAlert.close();
-    }, 5000);
+    window.alert(message);
 }
 
 // Función para loading

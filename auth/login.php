@@ -12,6 +12,7 @@ require_once __DIR__ . '/../includes/functions.php';
 // Si ya está logueado, respetar la obligación de cambiar contraseña
 if (isLoggedIn()) {
     if ((int)($_SESSION['debe_cambiar_password'] ?? 0) === 1) {
+        setFlash('warning', 'Debes cambiar tu contraseña para continuar.', 'Acción requerida');
         header('Location: ' . BASE_URL . '/auth/cambiar_password.php');
         exit();
     }
@@ -26,13 +27,9 @@ if (isLoggedIn()) {
 
 $pageTitle = 'Login';
 
-// Variable para mensajes
-$error = '';
-$success = '';
-
 // Si hay parámetro de logout
 if (isset($_GET['logout'])) {
-    $success = 'Sesión cerrada correctamente.';
+    setFlash('success', 'Sesión cerrada correctamente.', 'Hasta luego');
 }
 
 // Procesar formulario
@@ -50,13 +47,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $usuario = getUserByEmail($email);
 
         if (!$usuario) {
-            $error = 'Email o contraseña incorrectos.';
+            setFlash('error', 'Email o contraseña incorrectos.', 'No fue posible iniciar sesión');
+            header('Location: ' . BASE_URL . '/auth/login.php');
+            exit();
         } elseif (!verifyPassword($password, $usuario['password'])) {
-            $error = 'Email o contraseña incorrectos.';
+            setFlash('error', 'Email o contraseña incorrectos.', 'No fue posible iniciar sesión');
+            header('Location: ' . BASE_URL . '/auth/login.php');
+            exit();
         } else {
             // Verificar si el usuario está activo
             if (!$usuario['activo']) {
-                $error = 'Usuario desactivado. Contacta al administrador.';
+                setFlash('error', 'Usuario desactivado. Contacta al administrador.', 'Acceso denegado');
+                header('Location: ' . BASE_URL . '/auth/login.php');
+                exit();
             } else {
                 // Login exitoso - guardar sesión
                 $_SESSION['usuario_id'] = $usuario['id'];
@@ -66,9 +69,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['debe_cambiar_password'] = (int)$usuario['debe_cambiar_password'];
 
                 if ($_SESSION['debe_cambiar_password'] === 1) {
+                    setFlash('warning', 'Debes cambiar tu contraseña antes de continuar.', 'Acción requerida');
                     header('Location: ' . BASE_URL . '/auth/cambiar_password.php');
                     exit;
                 }
+
+                setFlash('success', 'Has iniciado sesión correctamente.', 'Bienvenido');
 
                 // Redirigir al dashboard correspondiente
                 if (in_array($usuario['rol'], ['admin', 'superadmin'], true)) {
@@ -110,22 +116,6 @@ footer{background:#fff;color:#666}
                     <img src="<?php echo BASE_URL; ?>/assets/img/logo_6.png" alt="Alex app support">
                 </div>
                 <h3 class="card-title text-center mb-4">Iniciar Sesión</h3>
-
-                <!-- Mensaje de éxito -->
-                <?php if (!empty($success)): ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle"></i> <?php echo sanitize($success); ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Mensaje de error -->
-                <?php if (!empty($error)): ?>
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fas fa-exclamation-triangle"></i> <?php echo sanitize($error); ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <?php endif; ?>
 
                 <form method="POST" novalidate>
                     <div class="mb-3">
