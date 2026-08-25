@@ -142,7 +142,7 @@ include '../includes/header.php';
                             <tr>
                                 <th class="ps-4" style="width: 80px;">ID</th>
                                 <th>Asunto</th>
-                                <th>Usuario / Cliente</th>
+                                <th>Usuario</th>
                                 <th>Ubicación y Área</th>
                                 <th>Atendido por</th>
                                 <th>Fecha resolución</th>

@@ -50,11 +50,9 @@ switch($ticket['estado'] ?? '') {
 $respuestas = getTicketResponses($ticket_id);
 $admins = getAllAdmins();
 
-$error = '';
-$success = '';
-
 // Procesamiento de Formularios POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $redirectUrl = BASE_URL . '/admin/ver_ticket.php?id=' . $ticket_id;
     
     // Accion: Cambiar estado / asignacion / urgencia
     if ($_POST['action'] === 'cambiar_estado') {
@@ -63,22 +61,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $urgencia = $_POST['urgencia'] ?? null;
 
         if (empty($nuevo_estado)) {
-            $error = 'Debes seleccionar un estado.';
+            setFlash('error', 'Debes seleccionar un estado.', 'No se pudo actualizar');
+            header('Location: ' . $redirectUrl);
+            exit;
         } elseif (!in_array($nuevo_estado, ['Nuevo', 'En proceso', 'Resuelto', 'Cerrado'])) {
-            $error = 'Estado inválido.';
+            setFlash('error', 'Estado inválido.', 'No se pudo actualizar');
+            header('Location: ' . $redirectUrl);
+            exit;
         } else {
             $asignado_id = null;
             if (isSuperAdmin() && $asignado_a && $asignado_a !== 'ninguno') {
                 $asignado_id = $asignado_a;
             } elseif ($asignado_a && $asignado_a !== 'ninguno') {
-                $error = 'Solo el superadmin puede asignar tickets.';
+                setFlash('error', 'Solo el superadmin puede asignar tickets.', 'No autorizado');
+                header('Location: ' . $redirectUrl);
+                exit;
             }
 
             $estado_anterior = $ticket['estado'] ?? '';
             $asignado_anterior = $ticket['asignado_a'] ?? null;
             $urgencia_anterior = $ticket['urgencia'] ?? 'Media';
 
-            if (empty($error) && updateTicketStatus($ticket_id, $nuevo_estado, $asignado_id)) {
+            if (updateTicketStatus($ticket_id, $nuevo_estado, $asignado_id)) {
                 
                 // Bitácora 1: Estado
                 if ($nuevo_estado !== $estado_anterior) {
@@ -123,25 +127,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
                 }
 
-                $success = 'Ticket actualizado correctamente.';
-                $ticket = getTicketById($ticket_id);
+                setFlash('success', 'Ticket actualizado correctamente.', 'Cambios guardados');
+                header('Location: ' . $redirectUrl);
+                exit;
             } else {
-                $error = $error ?: 'Error al actualizar el ticket.';
+                setFlash('error', 'Error al actualizar el ticket.', 'No se pudo guardar');
+                header('Location: ' . $redirectUrl);
+                exit;
             }
         }
     // Acción: Eliminar respuesta
     } elseif ($_POST['action'] === 'delete_response') {
         $response_id = isset($_POST['response_id']) ? (int)$_POST['response_id'] : 0;
         if ($response_id <= 0) {
-            $error = 'ID de respuesta inválido.';
+            setFlash('error', 'ID de respuesta inválido.', 'No se pudo eliminar');
+            header('Location: ' . $redirectUrl);
+            exit;
         } else {
             $delRes = deleteResponse($response_id, $admin_id);
             if ($delRes['success']) {
-                $success = 'Respuesta eliminada correctamente.';
-                $respuestas = getTicketResponses($ticket_id);
-                $_POST = [];
+                setFlash('success', 'Respuesta eliminada correctamente.', 'Cambios guardados');
+                header('Location: ' . $redirectUrl);
+                exit;
             } else {
-                $error = $delRes['error'] ?? 'Error al eliminar la respuesta.';
+                setFlash('error', $delRes['error'] ?? 'Error al eliminar la respuesta.', 'No se pudo eliminar');
+                header('Location: ' . $redirectUrl);
+                exit;
             }
         }
     // Acción: Responder Ticket
@@ -149,18 +160,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $mensaje = trim($_POST['mensaje'] ?? '');
 
         if (empty($mensaje)) {
-            $error = 'El mensaje no puede estar vacío.';
+            setFlash('error', 'El mensaje no puede estar vacío.', 'No se pudo responder');
+            header('Location: ' . $redirectUrl);
+            exit;
         } elseif (strlen($mensaje) < 5) {
-            $error = 'El mensaje debe tener al menos 5 caracteres.';
+            setFlash('error', 'El mensaje debe tener al menos 5 caracteres.', 'No se pudo responder');
+            header('Location: ' . $redirectUrl);
+            exit;
         } else {
             $result = addResponseToTicket($ticket_id, $admin_id, $mensaje);
             if ($result['success']) {
-                $success = 'Respuesta enviada correctamente.';
+                setFlash('success', 'Respuesta enviada correctamente.', 'Cambios guardados');
                 registrarHistorialTicket($ticket_id, $admin_id, 'respuesta', 'Respondió al ticket');
-                $respuestas = getTicketResponses($ticket_id);
-                $_POST = [];
+                header('Location: ' . $redirectUrl);
+                exit;
             } else {
-                $error = $result['error'] ?? 'Error al enviar respuesta.';
+                setFlash('error', $result['error'] ?? 'Error al enviar respuesta.', 'No se pudo responder');
+                header('Location: ' . $redirectUrl);
+                exit;
             }
         }
     }
@@ -174,21 +191,6 @@ include __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="container my-4">
-
-    <!-- Mensajes de Alerta -->
-    <?php if ($error): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <?php echo $error; ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
-
-    <?php if ($success): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <?php echo $success; ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
 
     <div class="row">
         <!-- ========================================================= -->
@@ -267,7 +269,7 @@ include __DIR__ . '/../includes/header.php';
                                                     <strong class="text-dark"><?php echo sanitize($resp['autor_nombre'] ?? $resp['usuario_nombre'] ?? $resp['nombre'] ?? 'Usuario'); ?></strong>
                                                     <div class="d-flex gap-2 align-items-center">
                                                         <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($resp['fecha_creacion'])); ?></small>
-                                                        <form method="POST" onsubmit="return confirm('¿Eliminar esta respuesta?');" class="m-0 p-0">
+                                                        <form method="POST" data-swal-confirm="¿Eliminar esta respuesta?" data-swal-title="Eliminar respuesta" class="m-0 p-0">
                                                             <input type="hidden" name="action" value="delete_response">
                                                             <input type="hidden" name="response_id" value="<?php echo (int)$resp['id']; ?>">
                                                             <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar respuesta">
