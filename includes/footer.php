@@ -1,7 +1,6 @@
 <?php
 /**
  * Footer Bootstrap
- 
  */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -11,36 +10,48 @@ if (session_status() === PHP_SESSION_NONE) {
     </main>
 
     <!-- Footer -->
-    <footer class="site-footer">
-            <div class="footer-inner container">
-            <div class="footer-col">
-                <h5>Sistema de Tickets de Ayuda</h5>
-                <p class="small text-muted">Gestión de solicitudes de soporte Alexandra Farms S.A.S.</p>
-                <ul class="list-unstyled small mt-2">
-                    <li><a href="#" class="text-decoration-none">Centro de ayuda</a></li>
-                    <li><a href="#" class="text-decoration-none">Términos y privacidad</a></li>
-                </ul>
+    <footer class="site-footer bg-light border-top py-4 mt-auto">
+        <div class="container">
+            <!-- Filas de columnas alineadas dinámicamente -->
+            <div class="row g-4 text-center text-md-start justify-content-between">
+                
+                <!-- Columna 1: Sistema -->
+                <div class="col-12 col-md-4">
+                    <h5 class="fw-bold text-dark mb-2">Sistema de Tickets de Ayuda</h5>
+                    <p class="small text-muted mb-2">Gestión de solicitudes de soporte Alexandra Farms S.A.S.</p>
+                    <ul class="list-unstyled small mb-0">
+                        <li><a href="#" class="text-decoration-none text-muted">Centro de ayuda</a></li>
+                        <li><a href="#" class="text-decoration-none text-muted">Términos y privacidad</a></li>
+                    </ul>
+                </div>
+
+                <!-- Columna 2: Ubicaciones -->
+                <div class="col-12 col-md-4">
+                    <h5 class="fw-bold text-dark mb-2">Ubicaciones</h5>
+                    <p class="small text-muted mb-0">
+                        <i class="fas fa-map-marker-alt text-success me-2"></i>Finca El Jardín<br>
+                        <i class="fas fa-map-marker-alt text-success me-2"></i>San Ignacio
+                    </p>
+                </div>
+
+                <!-- Columna 3: Contacto -->
+                <div class="col-12 col-md-4">
+                    <h5 class="fw-bold text-dark mb-2">Contacto</h5>
+                    <ul class="list-unstyled small mb-0">
+                        <li class="text-muted"><i class="fas fa-envelope text-success me-2"></i>soporte@alexandrafarms.com</li>
+                        <li class="text-muted"><i class="fas fa-phone text-success me-2"></i>+57 320 000 0000</li>
+                    </ul>
+                </div>
+
             </div>
 
-            <div class="footer-col">
-                <h5>Ubicaciones</h5>
-                <p class="small text-muted mb-0">
-                    <i class="fas fa-map-marker-alt me-2"></i>Finca El Jardín<br>
-                    <i class="fas fa-map-marker-alt me-2"></i>San Ignacio
-                </p>
-            </div>
+            <hr class="my-3 text-muted opacity-25">
 
-            <div class="footer-col">
-                <h5>Contacto</h5>
-                <ul class="list-unstyled small mt-2">
-                    <li class="text-muted">soporte@alexandrafarms.com</li>
-                    <li class="text-muted">+57 320 000 0000</li>
-                </ul>
-            </div>
-
-            <div class="w-100"></div>
-            <div class="w-100 mt-2 text-center">
-                <p class="small mb-0 text-muted">&copy; 2026 Sistema de Tickets. Todos los derechos reservados.</p>
+            <!-- Copyright centrado -->
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="small mb-0 text-muted">&copy; <?php echo date('Y'); ?> Sistema de Tickets. Todos los derechos reservados.</p>
+                </div>
             </div>
         </div>
     </footer>

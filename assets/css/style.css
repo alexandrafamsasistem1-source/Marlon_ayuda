@@ -1260,3 +1260,69 @@ footer {
 /* Tables and cards accent */
 .table thead th { background: transparent; color: #222; }
 .card .card-header .badge { background: rgba(255,255,255,0.15); }
+@media (min-width: 992px) {
+    .navbar-nav.ms-auto {
+        border-top: none !important;
+    }
+}
+/* Contenedor con Scroll Horizontal y Vertical garantizado */
+.table-responsive-scroll {
+    max-height: 300px !important; /* Altura máxima fija */
+    overflow-x: scroll !important; /* Forzar scroll H */
+    overflow-y: scroll !important; /* Forzar scroll V */
+    display: block;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Personalizar y Forzar Visibilidad de las Scrollbars (Webkit/Chrome/Edge/Safari) */
+.table-responsive-scroll::-webkit-scrollbar {
+    width: 8px;  /* Ancho para scroll vertical */
+    height: 8px; /* Alto para scroll horizontal */
+}
+
+.table-responsive-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive-scroll::-webkit-scrollbar-thumb {
+    background: #4a4a4a; /* Color verde Bootstrap para combinar */
+    border-radius: 4px;
+}
+
+.table-responsive-scroll::-webkit-scrollbar-thumb:hover {
+    background: #4a4a4a;
+}
+
+/* Forzar que la tabla sea más ancha que el contenedor para probar el scroll horizontal */
+.table-responsive-scroll table {
+    min-width: 500px; /* Asegura que en pantallas medianas/pequeñas aparezca el scroll horizontal */
+    margin-bottom: 0;
+}
+
+/* Encabezado fijo al hacer scroll vertical */
+.table-responsive-scroll table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #f8f9fa !important;
+    box-shadow: inset 0 -2px 0 #dee2e6;
+}
+/* Margen inferior para separar la tabla del footer y espacio dinámico */
+.card-tabla-usuarios {
+    margin-bottom: 2.5rem !important;
+}
+
+/* Espaciado interno en las celdas (padding) para que no queden apretadas */
+.table-responsive-scroll table th,
+.table-responsive-scroll table td {
+    padding: 0.85rem 1rem !important;
+    vertical-align: middle;
+}
+
+/* Añadir margen entre los botones de acciones */
+.table-responsive-scroll .btn-group .btn {
+    margin: 0 2px;
+    border-radius: 0.25rem !important; /* Esquinas redondeadas individuales */
+}

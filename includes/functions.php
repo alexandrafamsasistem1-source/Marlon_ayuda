@@ -1023,5 +1023,23 @@ function updatePasswordAndClearFlag($usuario_id, $nueva_password) {
         ':id' => (int)$usuario_id,
     ]);
 }
+/**
+ * Valida que la contraseña cumpla los requisitos mínimos de seguridad:
+ * - Mínimo 8 caracteres
+ * - Al menos una letra (a-z, A-Z)
+ * - Al menos un número (0-9)
+ */
+function validarPassword($password) {
+    if (strlen($password) < 8) {
+        return "La contraseña debe tener al menos 8 caracteres.";
+    }
+    if (!preg_match('/[A-Za-z]/', $password)) {
+        return "La contraseña debe contener al menos una letra.";
+    }
+    if (!preg_match('/[0-9]/', $password)) {
+        return "La contraseña debe contener al menos un número.";
+    }
+    return true; // Es válida
+}
 ?>
 

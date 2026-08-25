@@ -18,10 +18,72 @@ window.alert = function(message) {
     return window.originalAlert ? window.originalAlert(message) : undefined;
 };
 
-// Mostrar confirmación antes de enviar formularios críticos
+// Eventos que se ejecutan al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
     
-    // Confirmación para cerrar tickets
+    // 1. INICIALIZACIÓN GLOBAL DE TOOLTIPS (Bootstrap 5)
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // 2. CAMBIO DINÁMICO DE ICONO DE ALERTA DE CONTRASEÑA (Rojo -> Verde)
+    const passwordInput = document.getElementById('password_nueva') || document.getElementById('password');
+    const alertIcon = document.getElementById('password-alert-icon');
+
+    if (passwordInput && alertIcon) {
+        passwordInput.addEventListener('input', function () {
+            const val = this.value;
+            
+            // Criterios: Mínimo 8 caracteres, al menos 1 letra y 1 número
+            const hasMinLength = val.length >= 8;
+            const hasLetter = /[A-Za-z]/.test(val);
+            const hasNumber = /[0-9]/.test(val);
+
+            if (hasMinLength && hasLetter && hasNumber) {
+                // Cumple requisitos -> Icono verde de Check
+                alertIcon.classList.remove('fa-exclamation-circle', 'text-danger');
+                alertIcon.classList.add('fa-check-circle', 'text-success');
+
+                const tooltip = bootstrap.Tooltip.getInstance(alertIcon);
+                if (tooltip) {
+                    alertIcon.setAttribute('data-bs-original-title', '<b>¡Contraseña Segura!</b><br>Cumple con todos los requisitos.');
+                }
+            } else {
+                // No cumple -> Icono rojo de Alerta
+                alertIcon.classList.remove('fa-check-circle', 'text-success');
+                alertIcon.classList.add('fa-exclamation-circle', 'text-danger');
+
+                const tooltip = bootstrap.Tooltip.getInstance(alertIcon);
+                if (tooltip) {
+                    alertIcon.setAttribute('data-bs-original-title', '<b>Requisitos de contraseña:</b><br>• Mínimo 8 caracteres<br>• Al menos una letra<br>• Al menos un número');
+                }
+            }
+        });
+    }
+
+    // 3. FUNCIONALIDAD DEL BOTÓN OJITO (Mostrar / Ocultar Contraseña)
+    document.querySelectorAll('.toggle-password-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            const targetId = this.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            const icon = this.querySelector('i');
+
+            if (input) {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
+        });
+    });
+
+    // 4. Confirmación para cerrar tickets
     const formsToConfirm = document.querySelectorAll('form[data-confirm]');
     formsToConfirm.forEach(form => {
         form.addEventListener('submit', function(e) {
@@ -33,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Confirmación elegante con SweetAlert2 para acciones destructivas
+    // 5. Confirmación elegante con SweetAlert2 para acciones destructivas
     const swalConfirmElements = document.querySelectorAll('[data-swal-confirm]');
     swalConfirmElements.forEach(element => {
         element.addEventListener('click', function(e) {
@@ -77,90 +139,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Auto-dismiss de alerts después de 5 segundos
+    // 6. Auto-dismiss de alerts después de 5 segundos
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
         setTimeout(() => {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
+            if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }
         }, 5000);
     });
 
-    // Validación en tiempo real de passwords
-    const passwordInputs = document.querySelectorAll('input[type="password"]');
-    passwordInputs.forEach(input => {
-        input.addEventListener('input', function() {
-            if (this.value.length > 0 && this.value.length < 6) {
-                this.classList.add('is-invalid');
-            } else {
-                this.classList.remove('is-invalid');
-            }
-        });
-    });
-});
-
-// Función para copiar al portapapeles
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        alert('Copiado al portapapeles');
-    });
-}
-
-// Función para formatear fecha
-function formatDate(dateString) {
-    const options = { 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-    };
-    return new Date(dateString).toLocaleDateString('es-ES', options);
-}
-
-// Función para validar email
-function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-}
-
-// Función para mostrar notificación
-function showNotification(message, type = 'info') {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            icon: type,
-            title: type.charAt(0).toUpperCase() + type.slice(1),
-            text: message,
-            confirmButtonText: 'Aceptar'
-        });
-        return;
-    }
-
-    window.alert(message);
-}
-
-// Función para loading
-function setButtonLoading(buttonId, loading = true) {
-    const button = document.getElementById(buttonId);
-    if (!button) return;
-
-    if (loading) {
-        button.disabled = true;
-        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Procesando...';
-    } else {
-        button.disabled = false;
-        button.innerHTML = button.dataset.originalText || 'Enviar';
-    }
-}
-
-console.log('Sistema de Tickets - Script iniciado');
-
-/**
- * Marcar notificaciones como leídas (AJAX)
- */
-document.addEventListener('DOMContentLoaded', function() {
+    // 7. Notificaciones como leídas (AJAX)
     const markAsReadButtons = document.querySelectorAll('.mark-as-read-btn');
-    
     markAsReadButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
@@ -169,8 +160,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const notifId = this.dataset.notifId;
             const notifItem = document.querySelector(`[data-notif-id="${notifId}"]`);
             
-            // Hacer petición AJAX
-            fetch(baseUrl + '/api/mark_notification_read.php', {
+            fetch((typeof baseUrl !== 'undefined' ? baseUrl : '') + '/api/mark_notification_read.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -179,18 +169,15 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    // Animar la desaparición de la notificación
+                if (data.success && notifItem) {
                     notifItem.style.transition = 'opacity 0.3s ease-out, max-height 0.3s ease-out';
                     notifItem.style.opacity = '0';
                     notifItem.style.maxHeight = '0';
                     notifItem.style.overflow = 'hidden';
                     
-                    // Remover del DOM después de la animación
                     setTimeout(() => {
                         notifItem.remove();
                         
-                        // Actualizar el contador de notificaciones
                         const badge = document.querySelector('#notifDropdown .badge');
                         if (badge) {
                             let count = parseInt(badge.textContent) || 0;
@@ -200,7 +187,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 badge.textContent = count;
                             } else {
                                 badge.remove();
-                                // Mostrar mensaje de "No hay notificaciones pendientes"
                                 const dropdownList = document.querySelector('.dropdown-menu ul');
                                 if (dropdownList) {
                                     const emptyMsg = dropdownList.querySelector('.text-muted');
@@ -222,3 +208,54 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// Funciones auxiliares globales
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Copiado al portapapeles');
+    });
+}
+
+function formatDate(dateString) {
+    const options = { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    };
+    return new Date(dateString).toLocaleDateString('es-ES', options);
+}
+
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+function showNotification(message, type = 'info') {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: type,
+            title: type.charAt(0).toUpperCase() + type.slice(1),
+            text: message,
+            confirmButtonText: 'Aceptar'
+        });
+        return;
+    }
+
+    window.alert(message);
+}
+
+function setButtonLoading(buttonId, loading = true) {
+    const button = document.getElementById(buttonId);
+    if (!button) return;
+
+    if (loading) {
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Procesando...';
+    } else {
+        button.disabled = false;
+        button.innerHTML = button.dataset.originalText || 'Enviar';
+    }
+}
+
+console.log('Sistema de Tickets - Script iniciado');

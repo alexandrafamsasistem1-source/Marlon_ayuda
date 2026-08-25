@@ -20,8 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password_nueva = $_POST['password_nueva'] ?? '';
     $password_confirmar = $_POST['password_confirmar'] ?? '';
 
-    if (strlen($password_nueva) < 8) {
-        setFlash('error', 'La nueva contraseña debe tener al menos 8 caracteres.', 'Contraseña inválida');
+    // Validar requerimientos de seguridad con la función de backend
+    $valida = validarPassword($password_nueva);
+
+    if ($valida !== true) {
+        setFlash('error', $valida, 'Contraseña inválida');
         header('Location: ' . BASE_URL . '/auth/cambiar_password.php');
         exit;
     } elseif ($password_nueva !== $password_confirmar) {
@@ -73,13 +76,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .btn-primary {
-        background: #0b6b47;
-        border-color: #0b6b47;
+        background: #0b6b47 !important;
+        border-color: #0b6b47 !important;
     }
 
     .btn-primary:hover {
-        background: #085033;
-        border-color: #085033;
+        background: #085033 !important;
+        border-color: #085033 !important;
+    }
+
+    /* Wrapper relativo para el ojito dentro del input */
+    .password-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .password-wrapper .form-control {
+        padding-right: 2.5rem;
+    }
+
+    .toggle-password-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #6c757d;
+        font-size: 1.1rem;
+        z-index: 10;
+        transition: color 0.2s ease;
+    }
+
+    .toggle-password-icon:hover {
+        color: #0b6b47;
+    }
+
+    /* Caja de Alerta Roja (Alto contraste) */
+    .password-alert-box {
+        display: none;
+        background-color: #fff0f1;
+        border: 1px solid #f8d7da;
+        border-left: 4px solid #dc3545;
+        border-radius: 0.375rem;
+        padding: 0.65rem 0.85rem;
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        color: #842029;
+        box-shadow: 0 2px 5px rgba(220, 53, 69, 0.08);
+    }
+
+    .password-alert-box ul {
+        margin-bottom: 0;
+        padding-left: 1.2rem;
+        margin-top: 0.25rem;
     }
 </style>
 
@@ -95,14 +144,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <form method="POST" novalidate>
+                            <!-- Campo Nueva Contraseña con Ojito Integrado -->
                             <div class="mb-3">
                                 <label for="password_nueva" class="form-label">Nueva Contraseña</label>
-                                <input type="password" class="form-control" id="password_nueva" name="password_nueva" required minlength="8" autocomplete="new-password">
+                                <div class="password-wrapper">
+                                    <input type="password" 
+                                           class="form-control" 
+                                           id="password_nueva" 
+                                           name="password_nueva" 
+                                           required 
+                                           autocomplete="new-password"
+                                           placeholder="Nueva contraseña">
+                                    <i class="fas fa-eye toggle-password-icon" data-target="password_nueva"></i>
+                                </div>
+
+                                <!-- Alerta Dinámica -->
+                                <div id="password-alert-box" class="password-alert-box">
+                                    <strong><i class="fas fa-exclamation-circle me-1"></i> Requisitos de contraseña:</strong>
+                                    <ul>
+                                        <li>Mínimo 8 caracteres</li>
+                                        <li>Al menos una letra</li>
+                                        <li>Al menos un número</li>
+                                    </ul>
+                                </div>
                             </div>
 
+                            <!-- Campo Confirmar Contraseña con Ojito Integrado -->
                             <div class="mb-4">
                                 <label for="password_confirmar" class="form-label">Confirmar Nueva Contraseña</label>
-                                <input type="password" class="form-control" id="password_confirmar" name="password_confirmar" required minlength="8" autocomplete="new-password">
+                                <div class="password-wrapper">
+                                    <input type="password" 
+                                           class="form-control" 
+                                           id="password_confirmar" 
+                                           name="password_confirmar" 
+                                           required 
+                                           autocomplete="new-password"
+                                           placeholder="Repite la contraseña">
+                                    <i class="fas fa-eye toggle-password-icon" data-target="password_confirmar"></i>
+                                </div>
                             </div>
 
                             <button type="submit" class="btn btn-primary w-100">
@@ -115,5 +194,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const passwordInput = document.getElementById('password_nueva');
+    const alertBox = document.getElementById('password-alert-box');
+
+    // Funcionalidad para los ojitos
+    document.querySelectorAll('.toggle-password-icon').forEach(function (icon) {
+        icon.addEventListener('click', function () {
+            const targetId = this.getAttribute('data-target');
+            const targetInput = document.getElementById(targetId);
+            if (targetInput) {
+                const isPassword = targetInput.type === 'password';
+                targetInput.type = isPassword ? 'text' : 'password';
+                this.classList.toggle('fa-eye', !isPassword);
+                this.classList.toggle('fa-eye-slash', isPassword);
+            }
+        });
+    });
+
+    // Validacion y alerta roja
+    if (passwordInput && alertBox) {
+        passwordInput.addEventListener('input', function () {
+            const val = this.value;
+            const esValido = val.length >= 8 && /[a-zA-Z]/.test(val) && /[0-9]/.test(val);
+
+            if (val.length === 0 || esValido) {
+                alertBox.style.display = 'none';
+            } else {
+                alertBox.style.display = 'block';
+            }
+        });
+    }
+});
+</script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
