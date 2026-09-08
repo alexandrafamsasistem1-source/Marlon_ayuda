@@ -19,9 +19,15 @@ if ($basePath === '') {
     $basePath = '/';
 }
 if (substr($basePath, 0, 1) !== '/') $basePath = '/' . $basePath;
+$configuredBaseUrl = trim((string)getenv('APP_BASE_URL'));
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-define('BASE_URL', rtrim($scheme . '://' . $host . $basePath, '/'));
+$allowedHosts = array_filter(array_map('trim', explode(',', (string)(getenv('APP_ALLOWED_HOSTS') ?: 'localhost,127.0.0.1,192.168.31.134'))));
+$hostName = strtolower((string)parse_url('//' . $host, PHP_URL_HOST));
+if (!in_array($hostName, array_map('strtolower', $allowedHosts), true)) {
+    $host = 'localhost';
+}
+define('BASE_URL', rtrim($configuredBaseUrl !== '' ? $configuredBaseUrl : $scheme . '://' . $host . $basePath, '/'));
 
 // Datos de conexión - CAMBIAR según tu ambiente
 define('DB_HOST', 'localhost');

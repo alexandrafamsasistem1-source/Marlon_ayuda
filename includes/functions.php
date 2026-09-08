@@ -64,6 +64,37 @@ function setFlash($tipo, $mensaje, $titulo = '') {
 }
 
 /**
+ * Obtener un token CSRF asociado a la sesión actual.
+ */
+function csrfToken() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Generar el campo oculto CSRF para formularios.
+ */
+function csrfField() {
+    return '<input type="hidden" name="csrf_token" value="' . sanitize(csrfToken()) . '">';
+}
+
+/**
+ * Validar un token CSRF enviado por POST.
+ */
+function isValidCsrfToken($token) {
+    return is_string($token)
+        && $token !== ''
+        && hash_equals((string)($_SESSION['csrf_token'] ?? ''), $token);
+}
+
+/**
  * Redirigir a login si no está autenticado
  */
 function requireLogin() {
@@ -152,11 +183,11 @@ function isValidEmail($email) {
 }
 
 /**
- * Obtener usuario por ID
+ * Obtener usuario por ID (Incluye el campo área)
  */
 function getUserById($id) {
     $pdo = getDB();
-    $stmt = $pdo->prepare('SELECT id, nombre, email, rol, fecha_registro FROM usuarios WHERE id = ?');
+    $stmt = $pdo->prepare('SELECT id, nombre, email, rol, area, fecha_registro FROM usuarios WHERE id = ?');
     $stmt->execute([$id]);
     return $stmt->fetch();
 }
@@ -172,9 +203,9 @@ function getUserByEmail($email) {
 }
 
 /**
- * Crear nuevo usuario
+ * Crear nuevo usuario (Incluye área)
  */
-function createUser($nombre, $email, $password, $rol = 'usuario', $debe_cambiar_password = 1) {
+function createUser($nombre, $email, $password, $rol = 'usuario', $area = 'Administracion', $debe_cambiar_password = 1) {
     $pdo = getDB();
 
     if (getUserByEmail($email)) {
@@ -182,9 +213,9 @@ function createUser($nombre, $email, $password, $rol = 'usuario', $debe_cambiar_
     }
 
     $passwordHashed = hashPassword($password);
-    $stmt = $pdo->prepare('INSERT INTO usuarios (nombre, email, password, rol, debe_cambiar_password) VALUES (?, ?, ?, ?, ?)');
+    $stmt = $pdo->prepare('INSERT INTO usuarios (nombre, email, password, rol, area, debe_cambiar_password) VALUES (?, ?, ?, ?, ?, ?)');
 
-    if ($stmt->execute([$nombre, $email, $passwordHashed, $rol, (int)$debe_cambiar_password])) {
+    if ($stmt->execute([$nombre, $email, $passwordHashed, $rol, $area, (int)$debe_cambiar_password])) {
         return ['success' => true, 'usuario_id' => $pdo->lastInsertId()];
     } else {
         return ['success' => false, 'error' => 'Error al crear usuario'];
@@ -194,7 +225,7 @@ function createUser($nombre, $email, $password, $rol = 'usuario', $debe_cambiar_
 /**
  * Obtener todos los tickets (para admin)
  */
-function getAllTickets($limit = 50, $offset = 0) {
+function getAllTickets($limit = 50, $offset = 0, $estado = null) {
     $pdo = getDB();
     // Incluir columna 'urgencia' si existe
     $selectUrgencia = '';
@@ -203,6 +234,13 @@ function getAllTickets($limit = 50, $offset = 0) {
         if ($hasUrg) $selectUrgencia = ', t.urgencia';
     } catch (Exception $e) {
         $selectUrgencia = '';
+    }
+
+    $where = '';
+    $params = [];
+    if ($estado !== null && $estado !== '') {
+        $where = 'WHERE t.estado = ?';
+        $params[] = $estado;
     }
 
     $sql = "SELECT 
@@ -218,49 +256,82 @@ function getAllTickets($limit = 50, $offset = 0) {
         FROM tickets t
         LEFT JOIN usuarios u ON t.usuario_id = u.id
         LEFT JOIN usuarios a ON t.asignado_a = a.id
+        $where
         ORDER BY t.fecha_creacion DESC
         LIMIT ? OFFSET ?";
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$limit, $offset]);
+    $params[] = $limit;
+    $params[] = $offset;
+    $stmt->execute($params);
     return $stmt->fetchAll();
 }
 
 /**
  * Obtener tickets del usuario actual
  */
-
-    function getUserTickets($usuario_id, $limit = 50, $offset = 0) {
-        $pdo = getDB();
-        // Comprobar si existe la columna 'area' y seleccionar si está disponible
-        $hasArea = false;
-        try {
-            $hasArea = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . DB_NAME . "' AND TABLE_NAME = 'tickets' AND COLUMN_NAME = 'area'")->fetchColumn();
-        } catch (Exception $e) {
-            $hasArea = false;
-        }
-        $selectArea = $hasArea ? ', area' : '';
-        $sql = "SELECT id, asunto, estado, ubicacion, fecha_creacion$selectArea FROM tickets WHERE usuario_id = ? ORDER BY fecha_creacion DESC LIMIT ? OFFSET ?";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$usuario_id, $limit, $offset]);
-        return $stmt->fetchAll();
-    }
-
-/**
- * Obtener detalle de un ticket
- */
-function getTicketById($ticket_id) {
+function getUserTickets($usuario_id, $limit = 50, $offset = 0, $estado = null, $fechaDesde = null, $fechaHasta = null) {
     $pdo = getDB();
-    // Seleccionar 'area' si existe en la tabla
+    // Comprobar si existe la columna 'area' y seleccionar si está disponible
     $hasArea = false;
     try {
         $hasArea = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . DB_NAME . "' AND TABLE_NAME = 'tickets' AND COLUMN_NAME = 'area'")->fetchColumn();
     } catch (Exception $e) {
         $hasArea = false;
     }
-    $selectArea = $hasArea ? ', t.area' : '';
+    // El área pertenece al usuario. El valor del ticket solo se usa como
+    // respaldo para registros antiguos cuyo usuario no tenga área asignada.
+    $selectArea = $hasArea
+        ? ', COALESCE(NULLIF(TRIM(u.area), ""), NULLIF(TRIM(t.area), "")) AS area'
+        : ', u.area AS area';
+    $where = ['t.usuario_id = ?'];
+    $params = [$usuario_id];
+    if ($estado !== null && $estado !== '') {
+        $where[] = 't.estado = ?';
+        $params[] = $estado;
+    }
+    if ($fechaDesde !== null && $fechaDesde !== '') {
+        $where[] = 't.fecha_creacion >= ?';
+        $params[] = $fechaDesde . ' 00:00:00';
+    }
+    if ($fechaHasta !== null && $fechaHasta !== '') {
+        $where[] = 't.fecha_creacion < DATE_ADD(?, INTERVAL 1 DAY)';
+        $params[] = $fechaHasta . ' 00:00:00';
+    }
+
+    $sql = "SELECT t.id, t.asunto, t.estado, t.ubicacion, t.fecha_creacion$selectArea
+            FROM tickets t
+            INNER JOIN usuarios u ON u.id = t.usuario_id
+            WHERE " . implode(' AND ', $where) . "
+            ORDER BY t.fecha_creacion DESC
+            LIMIT ? OFFSET ?";
+    $stmt = $pdo->prepare($sql);
+    $params[] = $limit;
+    $params[] = $offset;
+    $stmt->execute($params);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Obtener detalle de un ticket
+ */
+function getTicketById($ticket_id) {
+    $pdo = getDB();
+    
+    // Seleccionar 'area' y 'tipo_problema' si existen en la tabla
+    $selectCols = '';
+    try {
+        $hasArea = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . DB_NAME . "' AND TABLE_NAME = 'tickets' AND COLUMN_NAME = 'area'")->fetchColumn();
+        if ($hasArea) $selectCols .= ', t.area';
+        
+        $hasTipo = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . DB_NAME . "' AND TABLE_NAME = 'tickets' AND COLUMN_NAME = 'tipo_problema'")->fetchColumn();
+        if ($hasTipo) $selectCols .= ', t.tipo_problema';
+    } catch (Exception $e) {
+        $selectCols = '';
+    }
+
     $stmt = $pdo->prepare(
-        "SELECT t.*$selectArea, u.nombre as usuario_nombre, u.email as usuario_email, a.nombre as asignado_nombre
+        "SELECT t.*$selectCols, u.nombre as usuario_nombre, u.email as usuario_email, u.area as usuario_area, a.nombre as asignado_nombre
         FROM tickets t
         LEFT JOIN usuarios u ON t.usuario_id = u.id
         LEFT JOIN usuarios a ON t.asignado_a = a.id
@@ -356,9 +427,6 @@ function getUnreadNotificationsCount($usuario_id = null) {
 
 /**
  * Obtener notificaciones recientes para un usuario
- * @param int $usuario_id - ID del usuario
- * @param int $limit - Límite de notificaciones a devolver
- * @param bool $unreadOnly - Si es true, solo devuelve notificaciones no leídas
  */
 function getNotificationsForUser($usuario_id, $limit = 10, $unreadOnly = true) {
     if (!$usuario_id) {
@@ -376,7 +444,6 @@ function getNotificationsForUser($usuario_id, $limit = 10, $unreadOnly = true) {
 
 /**
  * Resolver el contenido visible de una notificación usando el ticket vinculado.
- * Devuelve un array con: ticket_id, usuario, asunto, fecha.
  */
 function getNotificationPreview($notification) {
     $default = [
@@ -613,25 +680,43 @@ function createTicket($usuario_id, $asunto, $descripcion, $ubicacion, $area = nu
 }
 
 /**
- * Actualizar estado de ticket
+ * Actualizar estado de ticket y opcionalmente el tipo de problema (Software/Hardware)
  */
-function updateTicketStatus($ticket_id, $estado, $asignado_a = null) {
+function updateTicketStatus($ticket_id, $estado, $asignado_a = null, $tipo_problema = null) {
     $pdo = getDB();
 
-    if ($asignado_a !== null) {
-        $stmt = $pdo->prepare('
-            UPDATE tickets
-            SET estado = ?, asignado_a = ?, fecha_ultima_actualizacion = NOW()
-            WHERE id = ?
-        ');
-        return $stmt->execute([$estado, $asignado_a, $ticket_id]);
+    if ($tipo_problema !== null) {
+        if ($asignado_a !== null) {
+            $stmt = $pdo->prepare('
+                UPDATE tickets
+                SET estado = ?, asignado_a = ?, tipo_problema = ?, fecha_ultima_actualizacion = NOW()
+                WHERE id = ?
+            ');
+            return $stmt->execute([$estado, $asignado_a, $tipo_problema, $ticket_id]);
+        } else {
+            $stmt = $pdo->prepare('
+                UPDATE tickets
+                SET estado = ?, tipo_problema = ?, fecha_ultima_actualizacion = NOW()
+                WHERE id = ?
+            ');
+            return $stmt->execute([$estado, $tipo_problema, $ticket_id]);
+        }
     } else {
-        $stmt = $pdo->prepare('
-            UPDATE tickets
-            SET estado = ?, fecha_ultima_actualizacion = NOW()
-            WHERE id = ?
-        ');
-        return $stmt->execute([$estado, $ticket_id]);
+        if ($asignado_a !== null) {
+            $stmt = $pdo->prepare('
+                UPDATE tickets
+                SET estado = ?, asignado_a = ?, fecha_ultima_actualizacion = NOW()
+                WHERE id = ?
+            ');
+            return $stmt->execute([$estado, $asignado_a, $ticket_id]);
+        } else {
+            $stmt = $pdo->prepare('
+                UPDATE tickets
+                SET estado = ?, fecha_ultima_actualizacion = NOW()
+                WHERE id = ?
+            ');
+            return $stmt->execute([$estado, $ticket_id]);
+        }
     }
 }
 
@@ -767,11 +852,11 @@ function getAllAdmins() {
 }
 
 /**
- * Obtener todos los usuarios
+ * Obtener todos los usuarios (Incluye área)
  */
 function getAllUsers($limit = 100, $offset = 0) {
     $pdo = getDB();
-    $stmt = $pdo->prepare('SELECT id, nombre, email, rol, fecha_registro, activo FROM usuarios ORDER BY fecha_registro DESC LIMIT ? OFFSET ?');
+    $stmt = $pdo->prepare('SELECT id, nombre, email, rol, area, fecha_registro, activo FROM usuarios ORDER BY fecha_registro DESC LIMIT ? OFFSET ?');
     $stmt->execute([$limit, $offset]);
     return $stmt->fetchAll();
 }
@@ -786,11 +871,18 @@ function countAllUsers() {
 }
 
 /**
- * Actualizar datos de un usuario
+ * Actualizar datos de un usuario (Incluye área y sincronización inmediata de sesión)
  */
-function updateUser($user_id, $nombre, $email, $rol = null, $password = null) {
+function updateUser($user_id, $nombre, $email, $rol = 'usuario', $area = 'Administracion', $password = null) {
     $pdo = getDB();
     
+    // Normalizar y validar áreas permitidas
+    $area = trim($area);
+    $areasPermitidas = ['Administracion', 'Produccion', 'Poscosecha', 'Juridica', 'Cartera', 'Gestion Humana'];
+    if (!in_array($area, $areasPermitidas, true)) {
+       $area = 'Administracion';
+    }
+
     // Verificar que el email no esté en uso por otro usuario
     $stmt = $pdo->prepare('SELECT id FROM usuarios WHERE email = ? AND id != ?');
     $stmt->execute([$email, $user_id]);
@@ -802,16 +894,32 @@ function updateUser($user_id, $nombre, $email, $rol = null, $password = null) {
     }
     
     try {
-        if ($password) {
-            $sql = 'UPDATE usuarios SET nombre = ?, email = ?, rol = ?, password = ? WHERE id = ?';
-            $params = [$nombre, $email, $rol, hashPassword($password), $user_id];
+        if (!empty($password)) {
+            $sql = 'UPDATE usuarios SET nombre = ?, email = ?, rol = ?, area = ?, password = ? WHERE id = ?';
+            $params = [$nombre, $email, $rol, $area, hashPassword($password), $user_id];
         } else {
-            $sql = 'UPDATE usuarios SET nombre = ?, email = ?, rol = ? WHERE id = ?';
-            $params = [$nombre, $email, $rol, $user_id];
+            $sql = 'UPDATE usuarios SET nombre = ?, email = ?, rol = ?, area = ? WHERE id = ?';
+            $params = [$nombre, $email, $rol, $area, $user_id];
         }
         
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
+
+        // Sincronizar datos de la sesión activa inmediatamente si coinciden con el usuario modificado
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (isset($_SESSION['usuario_id']) && (int)$_SESSION['usuario_id'] === (int)$user_id) {
+            $_SESSION['nombre'] = $nombre;
+            $_SESSION['rol'] = $rol;
+            $_SESSION['area'] = $area;
+            if (isset($_SESSION['user'])) {
+                $_SESSION['user']['nombre'] = $nombre;
+                $_SESSION['user']['email'] = $email;
+                $_SESSION['user']['rol'] = $rol;
+                $_SESSION['user']['area'] = $area;
+            }
+        }
         
         return [
             'success' => true,
@@ -893,7 +1001,6 @@ function isTicketOwnedByUser($ticket_id, $usuario_id) {
 
 /**
  * Eliminar ticket (y sus respuestas) de forma segura
- * Solo borra si existe y la llamada se realiza como admin o propietario
  */
 function deleteTicket($ticket_id) {
     $pdo = getDB();
@@ -914,19 +1021,27 @@ function deleteTicket($ticket_id) {
         return false;
     }
 }
+
 /**
  * Obtener el historial de tickets resueltos o cerrados por mes, año y administrador asignado
  */
 function getResolvedTicketsByMonth($year, $month, $assignedUserId = null) {
     $pdo = getDB();
     
-    // Comprobar si existe la columna 'area' tal como haces en getUserTickets
-    $selectArea = '';
+    // Comprobar dinámicamente si existen las columnas 'area' y 'tipo_problema' en la tabla tickets
+    $extraCols = '';
     try {
         $hasArea = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . DB_NAME . "' AND TABLE_NAME = 'tickets' AND COLUMN_NAME = 'area'")->fetchColumn();
-        if ($hasArea) $selectArea = ', t.area';
+        if ($hasArea) {
+            $extraCols .= ', t.area';
+        }
+        
+        $hasTipo = (bool)$pdo->query("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . DB_NAME . "' AND TABLE_NAME = 'tickets' AND COLUMN_NAME = 'tipo_problema'")->fetchColumn();
+        if ($hasTipo) {
+            $extraCols .= ', t.tipo_problema';
+        }
     } catch (Exception $e) {
-        $selectArea = '';
+        $extraCols = '';
     }
 
     $sql = "SELECT 
@@ -935,8 +1050,9 @@ function getResolvedTicketsByMonth($year, $month, $assignedUserId = null) {
                 t.estado,
                 t.ubicacion,
                 t.fecha_creacion,
-                t.fecha_ultima_actualizacion AS fecha_resolucion" . $selectArea . ",
+                t.fecha_ultima_actualizacion AS fecha_resolucion" . $extraCols . ",
                 u.nombre as usuario_nombre,
+                u.area as usuario_area,
                 a.nombre as asignado_nombre
             FROM tickets t
             LEFT JOIN usuarios u ON t.usuario_id = u.id
@@ -960,6 +1076,7 @@ function getResolvedTicketsByMonth($year, $month, $assignedUserId = null) {
         return [];
     }
 }
+
 /**
  * Registrar un evento en el historial de un ticket
  */
@@ -991,7 +1108,7 @@ function getTicketHistory($ticket_id) {
             FROM historial_tickets h
             INNER JOIN usuarios u ON h.usuario_id = u.id
             WHERE h.ticket_id = ?
-            ORDER BY h.fecha_creacion ASC";
+            ORDER BY h.fecha_creacion DESC, h.id DESC";
             
     try {
         $stmt = $pdo->prepare($sql);
@@ -1002,6 +1119,7 @@ function getTicketHistory($ticket_id) {
         return [];
     }
 }
+
 function encolarCorreo(PDO $pdo, string $destinatario, string $asunto, string $cuerpo): bool {
     $sql = "INSERT INTO cola_correos (destinatario, asunto, cuerpo, estado) 
             VALUES (:destinatario, :asunto, :cuerpo, 'pendiente')";
@@ -1023,11 +1141,9 @@ function updatePasswordAndClearFlag($usuario_id, $nueva_password) {
         ':id' => (int)$usuario_id,
     ]);
 }
+
 /**
- * Valida que la contraseña cumpla los requisitos mínimos de seguridad:
- * - Mínimo 8 caracteres
- * - Al menos una letra (a-z, A-Z)
- * - Al menos un número (0-9)
+ * Valida requisitos mínimos de seguridad para la contraseña
  */
 function validarPassword($password) {
     if (strlen($password) < 8) {
@@ -1039,7 +1155,6 @@ function validarPassword($password) {
     if (!preg_match('/[0-9]/', $password)) {
         return "La contraseña debe contener al menos un número.";
     }
-    return true; // Es válida
+    return true;
 }
 ?>
-

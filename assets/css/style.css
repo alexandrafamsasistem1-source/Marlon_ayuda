@@ -1326,3 +1326,18 @@ footer {
     margin: 0 2px;
     border-radius: 0.25rem !important; /* Esquinas redondeadas individuales */
 }
+/* Estilos personalizables para Software */
+.historial-stat-card.card-software {
+    border: 2px solid #e6e8e7 !important;
+}
+.text-software {
+    color: #95a587 !important;
+}
+
+/* Estilos personalizables para Hardware */
+.historial-stat-card.card-hardware {
+    border: 2px solid #fbf4f5 !important;
+}
+.text-hardware {
+    color: #C57D88 !important;
+}

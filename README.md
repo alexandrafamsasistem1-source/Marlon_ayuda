@@ -8,16 +8,21 @@ Sistema web para gestión de tickets de ayuda desarrollado en **PHP 7+**, **MySQ
 
 ✅ **Autenticación segura** - Login/Registro con contraseñas hasheadas (bcrypt)
 ✅ **Módulo Usuario** - Crear tickets, ver estado, responder, historial
-✅ **Módulo Admin** - Ver todos los tickets, responder, cambiar estado, asignar
-✅ **Reportes** - Estadísticas con gráficas (Chart.js)
+✅ **Módulo Admin** - Ver todos los tickets, responder, cambiar estado, asignar y filtrar por urgencia
+✅ **Gestión de usuarios** - Crear, editar y eliminar usuarios, asignar áreas y administrar roles
+✅ **Reportes mensuales** - Estadísticas por estado y tipo de problema, con exportación CSV compatible con Excel
+✅ **Historial personal** - Consulta mensual de tickets resueltos y cerrados asignados al administrador
 ✅ **4 Estados de Tickets** - Nuevo, En proceso, Resuelto, Cerrado
 ✅ **2 Ubicaciones** - Finca El Jardín, San Ignacio
-✅ **2 Áreas** - Administración, Poscosecha
+✅ **Áreas de trabajo** - Administración, Producción, Poscosecha, Jurídica, Cartera y Gestión Humana
+✅ **Clasificación de problemas** - Software, Hardware o Ninguno
 ✅ **Notificaciones** - Sistema de notificaciones para admins con estado de lectura
 ✅ **Sistema de Migraciones** - Control de versiones para cambios en BD
 ✅ **Interfaz Responsive** - Bootstrap 5
 ✅ **Seguridad** - Prepared statements, XSS protection, validación de roles
-✅ **Correos automáticos** - Notificaciones por email al crear tickets
+✅ **Correos automáticos** - Notificaciones por email al crear tickets mediante PHPMailer/SMTP
+✅ **Cola de correos** - Reintentos y procesamiento por lotes mediante tarea programada o cron
+✅ **Cambio obligatorio de contraseña** - Validación y actualización segura para usuarios nuevos
 
 ---
 
@@ -58,7 +63,15 @@ define('DB_PASS', '');             // Contraseña MySQL (dejar vacío si no tien
 define('DB_NAME', 'tickets_ayuda');
 ```
 
-#### 4. **Generar contraseñas hasheadas (IMPORTANTE)**
+#### 4. **Instalar dependencias**
+
+El proyecto utiliza PHPMailer para el envío SMTP:
+
+```bash
+composer install
+```
+
+#### 5. **Generar contraseñas hasheadas (IMPORTANTE)**
 
 El archivo `setup_database.sql` tiene placeholders. Genera los hashes:
 
@@ -82,13 +95,13 @@ UPDATE usuarios SET password = '$2y$10$YKVgKEKSTlq8oJfKDY7C2.YXvJV.6W4eWFCWr5Ux1
 UPDATE usuarios SET password = '$2y$10$D9LLd8b9sHZWVvGNnNJzXuRhQ5P1kI8Y7Z3wM2b9cK6pL4xJ5V0Q6' WHERE email = 'usuario@tickets.local';
 ```
 
-#### 5. **Definir permisos** (Linux/Mac)
+#### 6. **Definir permisos** (Linux/Mac)
 ```bash
 chmod -R 755 proyecto_ayuda_app/
 chmod -R 777 proyecto_ayuda_app/includes/  # Si es necesario para escritura
 ```
 
-#### 6. **Configurar Virtual Host** (Opcional pero recomendado)
+#### 7. **Configurar Virtual Host** (Opcional pero recomendado)
 
 **Apache (httpd-vhosts.conf):**
 ```apache
@@ -110,7 +123,7 @@ chmod -R 777 proyecto_ayuda_app/includes/  # Si es necesario para escritura
 127.0.0.1 tickets.local
 ```
 
-#### 7. **Crear archivo `.htaccess`** (Reescritura de URLs)
+#### 8. **Crear archivo `.htaccess`** (Reescritura de URLs)
 
 Crear en la raíz: `.htaccess`
 ```apache
@@ -198,7 +211,8 @@ proyecto_ayuda_app/
 │
 ├── auth/
 │   ├── login.php             # Página de login
-│   └── register.php          # Página de registro
+│   ├── register.php          # Página de registro
+│   └── cambiar_password.php  # Cambio obligatorio de contraseña
 │
 ├── usuario/
 │   ├── dashboard.php         # Dashboard usuario - lista tickets propios
@@ -206,9 +220,11 @@ proyecto_ayuda_app/
 │   └── ver_ticket.php        # Ver detalle y responder
 │
 ├── admin/
+│   ├── crear_usuario.php     # Crear, editar y eliminar usuarios
 │   ├── dashboard.php         # Panel admin - todos los tickets
 │   ├── ver_ticket.php        # Ver detalle, cambiar estado, responder
-│   └── reportes.php          # Estadísticas y gráficas
+│   ├── reportes.php          # Reportes mensuales y exportación CSV
+│   └── historial_mensual.php # Historial mensual del administrador
 │
 ├── api/
 │   (Para futuras extensiones JSON)
@@ -218,6 +234,16 @@ proyecto_ayuda_app/
 │   │   └── style.css         # Estilos personalizados Bootstrap
 │   └── js/
 │       └── main.js           # JavaScript principal
+│
+├── cron/
+│   └── procesar_correos.php   # Procesa la cola de correos pendientes
+│
+├── tools/
+│   ├── test_db.php            # Prueba de conexión a BD
+│   └── test_mail.php          # Prueba de envío de correo
+│
+├── composer.json              # Dependencia PHPMailer
+├── vendor/                    # Dependencias instaladas por Composer
 │
 ├── index.php                 # Punto de entrada
 ├── logout.php                # Cerrar sesión
@@ -277,7 +303,7 @@ proyecto_ayuda_app/
 - ✅ **Contraseñas hasheadas** con bcrypt (PASSWORD_BCRYPT)
 - ✅ **Prepared statements** en todas las queries (PDO)
 - ✅ **XSS Protection** - htmlspecialchars() en outputs
-- ✅ **CSRF Tokens** - Posible agregar en futuras versiones
+- ⏳ **CSRF Tokens** - Pendiente de implementar en formularios
 - ✅ **Validación de roles** - Verificación en cada página
 - ✅ **Permisos por usuario** - No ver tickets ajenos (excepto admins)
 
@@ -292,8 +318,10 @@ proyecto_ayuda_app/
 - email (VARCHAR 100, UNIQUE)
 - password (VARCHAR 255, hashed)
 - rol (ENUM: 'usuario', 'admin')
+- area (área de trabajo del usuario)
 - fecha_registro (TIMESTAMP)
 - activo (TINYINT, 1/0)
+- debe_cambiar_password (TINYINT, 1/0)
 ```
 
 ### Tabla: tickets
@@ -303,9 +331,11 @@ proyecto_ayuda_app/
 - asunto (VARCHAR 255)
 - descripcion (LONGTEXT)
 - ubicacion (ENUM: 'Finca El Jardín', 'San Ignacio')
-- area (ENUM: 'Administracion', 'Poscosecha')
+- area (área de trabajo)
+- tipo_problema (ENUM: 'Software', 'Hardware', 'Ninguno')
 - estado (ENUM: 'Nuevo', 'En proceso', 'Resuelto', 'Cerrado')
 - asignado_a (INT, FK → usuarios.id)
+- urgencia (si está disponible en la instalación)
 - fecha_creacion (TIMESTAMP)
 - fecha_ultima_actualizacion (TIMESTAMP)
 ```
@@ -339,11 +369,15 @@ Las migraciones permiten mantener versionado los cambios en la base de datos. Se
 
 - `001_add_area.sql` - Agrega el campo `area` a la tabla de tickets
 - `002_create_notificaciones.sql` - Crea la tabla de notificaciones para admins
+- `003_add_debe_cambiar_password.sql` - Agrega el indicador de cambio obligatorio de contraseña
+- `004_add_tipo_problema.sql` - Agrega la clasificación Software/Hardware/Ninguno
 
 **Aplicar migraciones manualmente:**
 ```bash
 mysql -u root -p tickets_ayuda < migrations/001_add_area.sql
 mysql -u root -p tickets_ayuda < migrations/002_create_notificaciones.sql
+mysql -u root -p tickets_ayuda < migrations/003_add_debe_cambiar_password.sql
+mysql -u root -p tickets_ayuda < migrations/004_add_tipo_problema.sql
 ```
 
 O en phpMyAdmin:
@@ -362,18 +396,18 @@ O en phpMyAdmin:
 - `requireAdmin()` - Redirigir si no es admin
 
 ### Usuarios
-- `createUser($nombre, $email, $password, $rol)` - Crear usuario
+- `createUser($nombre, $email, $password, $rol, $area)` - Crear usuario con área
 - `getUserById($id)` - Obtener usuario por ID
 - `getUserByEmail($email)` - Obtener usuario por email
 - `hashPassword($password)` - Hashear contraseña
 - `verifyPassword($password, $hash)` - Verificar contraseña
 
 ### Tickets
-- `createTicket($usuario_id, $asunto, $descripcion, $ubicacion)` - Crear ticket
+- `createTicket($usuario_id, $asunto, $descripcion, $ubicacion, $area)` - Crear ticket
 - `getTicketById($ticket_id)` - Obtener ticket
 - `getUserTickets($usuario_id)` - Obtener tickets del usuario
 - `getAllTickets($limit, $offset)` - Obtener todos los tickets (admin)
-- `updateTicketStatus($ticket_id, $estado, $asignado_a)` - Cambiar estado
+- `updateTicketStatus($ticket_id, $estado, $asignado_a, $tipo_problema)` - Cambiar estado, asignación y clasificación
 - `getTicketResponses($ticket_id)` - Obtener respuestas de un ticket
 - `addResponseToTicket($ticket_id, $usuario_id, $mensaje)` - Agregar respuesta
 
@@ -381,6 +415,8 @@ O en phpMyAdmin:
 - `countTotalTickets()` - Contar total de tickets
 - `countTicketsByStatus()` - Contar por estado
 - `countTicketsByLocation()` - Contar por ubicación
+- `getResolvedTicketsByMonth()` - Obtener tickets resueltos o cerrados por mes
+- `deleteResponse()` - Eliminar respuestas con validación de permisos
 
 ---
 
@@ -388,13 +424,18 @@ O en phpMyAdmin:
 
 - [x] Notificaciones por email
 - [x] Sistema de migraciones BD
-- [x] Campo de Áreas (Administración, Poscosecha)
+- [x] Gestión de usuarios y áreas de trabajo
 - [x] Notificaciones internas para admins
-- [ ] Dashboard mejorado con widgets
+- [x] Clasificación de tickets por tipo de problema
+- [x] Reportes mensuales e historial personal
+- [x] Exportación de reportes a CSV compatible con Excel
+- [x] Cola de correos con reintentos
+- [x] Cambio obligatorio de contraseña
+- [ ] Dashboard mejorado con widgets adicionales
 - [ ] Adjuntos de archivos en tickets y respuestas
 - [ ] Búsqueda avanzada y filtros dinámicos
-- [ ] Prioridades y urgencia de tickets
-- [ ] Exportar reportes (PDF, Excel)
+- [x] Filtros y visualización de urgencia de tickets
+- [ ] Exportar reportes en PDF
 - [ ] Auditoría de cambios y historial completo
 - [ ] Asignación automática de tickets (round-robin)
 - [ ] Chat en vivo entre usuario y admin
@@ -403,13 +444,15 @@ O en phpMyAdmin:
 
 ## Cambios recientes
 
-- `usuario/ver_ticket.php`: se añadió wrapper `.responses-green` para estilizar las respuestas del equipo con aspecto "verde" apilado (solo diseño, sin lógica nueva).
-- `assets/css/style.css`: se agregó la sección `.responses-green` y ajustes de notificaciones; estilos verdes están encapsulados para no afectar otras vistas.
-- `admin/ver_ticket.php`: se implementó `conversation-section` con `max-height` y `overflow-y:auto` para scrollbar interno; se añadió la opción de eliminar respuestas para `admin`/`superadmin` (backend y frontend).
-- `includes/functions.php`: se añadió la función `deleteResponse()` para manejar eliminación segura de respuestas (verificar rol y actualizar timestamps).
-- `includes/header.php`: pequeño ajuste visual en el badge de notificaciones.
-
-Si quieres que adapte los mensajes del changelog o añada fechas/autor, dímelo y lo actualizo.
+- `admin/crear_usuario.php`: gestión completa de usuarios, asignación de áreas, edición, eliminación y validación de contraseñas.
+- `admin/reportes.php`: informe mensual con desglose por estado y tipo de problema, detalle de tickets y exportación CSV.
+- `admin/historial_mensual.php`: historial de tickets finalizados por mes, con conteos de Software y Hardware.
+- `admin/ver_ticket.php`: clasificación del ticket por tipo de problema para usuarios con rol `superadmin`, eliminación segura de respuestas y conversación con scroll interno.
+- `usuario/crear_ticket.php`: el área se toma automáticamente del perfil del usuario y se envía una notificación por correo al crear el ticket.
+- `auth/cambiar_password.php`: flujo de cambio obligatorio de contraseña para cuentas marcadas.
+- `cron/procesar_correos.php`: procesamiento por lotes de la cola de correos con reintentos y registro de errores.
+- `assets/css/style.css`: estilos para respuestas, notificaciones, reportes e historial mensual.
+- `includes/functions.php`: soporte para áreas, tipo de problema, roles, usuarios, historial y eliminación segura de respuestas.
 
 - [ ] Encuestas de satisfacción post-cierre
 - [ ] Integración con Slack/Discord para notificaciones
@@ -451,6 +494,6 @@ Este proyecto es de código abierto y está bajo licencia MIT.
 
 ---
 
-**Versión:** 1.1.0  
-**Última actualización:** Julio 2026  
+**Versión:** 1.2.0
+**Última actualización:** Septiembre 2026
 **Autor:** Tu Nombre

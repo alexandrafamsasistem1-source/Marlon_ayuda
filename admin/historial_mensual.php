@@ -1,12 +1,13 @@
 <?php
 // 1. Inicialización del Entorno y Seguridad
-require_once '../includes/functions.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Control de acceso nativo de tu sistema
+// Control de acceso nativo del sistema
 requireAdmin(); 
 
 $current_admin_id = getUserId();
@@ -15,11 +16,13 @@ $current_admin_id = getUserId();
 $anio_actual = (int)date('Y');
 $mes_actual = (int)date('n');
 
-// Forzamos el casteo a entero (int) para evitar inyecciones por URL
 $selected_year = isset($_GET['year']) ? (int)$_GET['year'] : $anio_actual;
 $selected_month = isset($_GET['month']) ? (int)$_GET['month'] : $mes_actual;
+$return_url = BASE_URL . '/admin/historial_mensual.php?' . http_build_query([
+    'year' => $selected_year,
+    'month' => $selected_month,
+]);
 
-// Rango dinámico para el selector (desde el año actual descendiendo hasta 2024)
 $años_disponibles = range($anio_actual, 2024);
 
 $meses = [
@@ -28,22 +31,35 @@ $meses = [
     9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
 ];
 
-// 3. Consulta de Datos a la API/Funciones Internas
+// 3. Consulta de Datos y Contadores
 $tickets = getResolvedTicketsByMonth($selected_year, $selected_month, $current_admin_id);
 
-// Contadores rápidos para los bloques analíticos superiores
 $total_tickets = count($tickets);
 $resueltos = 0;
 $cerrados = 0;
+$software_count = 0;
+$hardware_count = 0;
 
-foreach ($tickets as $t) {
-    if ($t['estado'] === 'Resuelto') {
+foreach ($tickets as &$t) {
+    if (($t['estado'] ?? '') === 'Resuelto') {
         $resueltos++;
     }
-    if ($t['estado'] === 'Cerrado') {
+    if (($t['estado'] ?? '') === 'Cerrado') {
         $cerrados++;
     }
+
+    // Coincidencia flexible de claves de columna de la BD (tipo_problema, tipo, categoria)
+    $tipo_raw = $t['tipo_problema'] ?? $t['tipo'] ?? $t['categoria'] ?? '';
+    $t['tipo_problema_normalizado'] = $tipo_raw; // Para reutilizar en el listado HTML
+
+    $tipo = strtolower(trim($tipo_raw));
+    if (strpos($tipo, 'software') !== false) {
+        $software_count++;
+    } elseif (strpos($tipo, 'hardware') !== false) {
+        $hardware_count++;
+    }
 }
+unset($t);
 
 // 4. Inclusión de la Interfaz Visual Común
 include '../includes/header.php';
@@ -58,7 +74,6 @@ include '../includes/header.php';
                     <span class="historial-hero-dot"></span>
                     <h1 class="historial-hero-title mb-0">Historial personal</h1>
                 </div>
-            
             </div>
         </div>
     </div>
@@ -95,32 +110,49 @@ include '../includes/header.php';
         </div>
     </div>
 
-    <div class="row mb-4 g-3 historial-stats">
-        <div class="col-md-4">
-            <div class="card historial-stat-card shadow-sm h-100">
-                <div class="card-body text-center py-4">
-                    <div class="historial-stat-label">Total finalizados</div>
-                    <div class="historial-stat-value"><?= $total_tickets ?></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card historial-stat-card shadow-sm h-100">
-                <div class="card-body text-center py-4">
-                    <div class="historial-stat-label historial-stat-label--success">Resueltos</div>
-                    <div class="historial-stat-value historial-stat-value--success"><?= $resueltos ?></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card historial-stat-card shadow-sm h-100">
-                <div class="card-body text-center py-4">
-                    <div class="historial-stat-label">Cerrados</div>
-                    <div class="historial-stat-value historial-stat-value--muted"><?= $cerrados ?></div>
-                </div>
+   <!-- Sección de Tarjetas Estadísticas con Software y Hardware -->
+<div class="row mb-4 g-3 historial-stats">
+    <div class="col-md">
+        <div class="card historial-stat-card shadow-sm h-100">
+            <div class="card-body text-center py-4">
+                <div class="historial-stat-label">Total finalizados</div>
+                <div class="historial-stat-value"><?= $total_tickets ?></div>
             </div>
         </div>
     </div>
+    <div class="col-md">
+        <div class="card historial-stat-card shadow-sm h-100">
+            <div class="card-body text-center py-4">
+                <div class="historial-stat-label historial-stat-label--success">Resueltos</div>
+                <div class="historial-stat-value historial-stat-value--success"><?= $resueltos ?></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="card historial-stat-card shadow-sm h-100">
+            <div class="card-body text-center py-4">
+                <div class="historial-stat-label">Cerrados</div>
+                <div class="historial-stat-value historial-stat-value--muted"><?= $cerrados ?></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="card historial-stat-card card-software shadow-sm h-100">
+            <div class="card-body text-center py-4">
+                <div class="historial-stat-label text-software fw-bold">Software</div>
+                <div class="historial-stat-value text-software"><?= $software_count ?></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="card historial-stat-card card-hardware shadow-sm h-100">
+            <div class="card-body text-center py-4">
+                <div class="historial-stat-label text-hardware fw-bold">Hardware</div>
+                <div class="historial-stat-value text-hardware"><?= $hardware_count ?></div>
+            </div>
+        </div>
+    </div>
+</div>
 
     <div class="card historial-table-card shadow-sm border-0">
         <div class="card-header historial-table-header d-flex justify-content-between align-items-center">
@@ -155,9 +187,11 @@ include '../includes/header.php';
                                     <td class="ps-4 fw-semibold text-secondary">#<?= $ticket['id'] ?></td>
                                     <td>
                                         <div class="historial-ticket-title"><?= htmlspecialchars($ticket['asunto'], ENT_QUOTES, 'UTF-8') ?></div>
-                                        <span class="re-state-chip <?= $ticket['estado'] === 'Resuelto' ? 're-state-chip--resuelto' : 're-state-chip--cerrado' ?> mt-2">
-                                            <?= $ticket['estado'] ?>
-                                        </span>
+                                        <div class="d-flex align-items-center gap-2 mt-2">
+                                            <span class="re-state-chip <?= $ticket['estado'] === 'Resuelto' ? 're-state-chip--resuelto' : 're-state-chip--cerrado' ?>">
+                                                <?= $ticket['estado'] ?>
+                                          
+                                        </div>
                                     </td>
                                     <td>
                                         <span class="historial-muted-text"><?= htmlspecialchars($ticket['usuario_nombre'], ENT_QUOTES, 'UTF-8') ?></span>
@@ -166,9 +200,23 @@ include '../includes/header.php';
                                         <small class="d-block historial-location">
                                             <?= htmlspecialchars($ticket['ubicacion'], ENT_QUOTES, 'UTF-8') ?>
                                         </small>
-                                        <?php if (!empty($ticket['area'])): ?>
-                                            <small class="historial-area">
-                                                <?= htmlspecialchars($ticket['area'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php 
+                                            // Toma el área del usuario y si no existe usa la columna 'area' del ticket
+                                            $rawArea = !empty($ticket['usuario_area']) ? $ticket['usuario_area'] : ($ticket['area'] ?? '');
+                                            
+                                            $areaDisplay = [
+                                                'Administracion' => 'Administración',
+                                                'Produccion'     => 'Producción',
+                                                'Poscosecha'     => 'Poscosecha',
+                                                'Juridica'       => 'Jurídica',
+                                                'Cartera'        => 'Cartera',
+                                                'Gestion Humana' => 'Gestión Humana'
+                                            ];
+                                        ?>
+                                        <?php if (!empty($rawArea)): ?>
+                                            <small class="historial-area text-muted d-block">
+                                                <i class="fas fa-building me-1"></i>
+                                                <?= htmlspecialchars($areaDisplay[$rawArea] ?? $rawArea, ENT_QUOTES, 'UTF-8') ?>
                                             </small>
                                         <?php endif; ?>
                                     </td>
@@ -181,11 +229,11 @@ include '../includes/header.php';
                                     </td>
                                     <td>
                                         <small class="historial-date">
-                                            <?= date('d/m/Y H:i', strtotime($ticket['fecha_resolucion'])) ?>
+                                            <?= date('d/m/Y H:i', strtotime($ticket['fecha_resolucion'] ?? $ticket['fecha_creacion'])) ?>
                                         </small>
                                     </td>
                                     <td class="text-center pe-4">
-                                        <a href="ver_ticket.php?id=<?= $ticket['id'] ?>" class="btn btn-sm btn-outline-primary historial-detail-btn">
+                                        <a href="ver_ticket.php?id=<?= $ticket['id'] ?>&return=<?= urlencode($return_url) ?>" class="btn btn-sm btn-outline-primary historial-detail-btn">
                                             Ver detalle
                                         </a>
                                     </td>

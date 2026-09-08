@@ -12,27 +12,32 @@ require_once __DIR__ . '/../includes/functions.php';
 // Verificar que sea admin
 requireAdmin();
 
-if (isset($_GET['marcar_leidas'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'marcar_leidas') {
+    if (!isValidCsrfToken($_POST['csrf_token'] ?? '')) {
+        setFlash('error', 'La sesión del formulario expiró. Recarga la página e inténtalo nuevamente.', 'Solicitud inválida');
+        header('Location: ' . BASE_URL . '/admin/dashboard.php');
+        exit;
+    }
     markNotificationsAsRead(getUserId());
 }
 
 $pageTitle = 'Panel de Administración';
 
 // Parámetros
-$filtro_estado = $_GET['estado'] ?? '';
+$filtro_estado = $_GET['estado'] ?? 'Nuevo';
 $filtro_ubicacion = $_GET['ubicacion'] ?? '';
 $filtro_urgencia = $_GET['urgencia'] ?? '';
 
-// Obtener todos los tickets
-$tickets = getAllTickets(200, 0);
+// Por defecto se muestran tickets nuevos, pero el administrador puede cambiar
+// el estado desde el selector.
+$tickets = getAllTickets(200, 0, $filtro_estado);
 
-// Aplicar filtros si existen (incluye urgencia)
-if ($filtro_estado || $filtro_ubicacion || $filtro_urgencia) {
-    $tickets = array_filter($tickets, function($ticket) use ($filtro_estado, $filtro_ubicacion, $filtro_urgencia) {
-        $coindice_estado = !$filtro_estado || ($ticket['estado'] ?? '') === $filtro_estado;
+// Aplicar filtros adicionales de ubicación y urgencia.
+if ($filtro_ubicacion || $filtro_urgencia) {
+    $tickets = array_filter($tickets, function($ticket) use ($filtro_ubicacion, $filtro_urgencia) {
         $coincide_ubicacion = !$filtro_ubicacion || ($ticket['ubicacion'] ?? '') === $filtro_ubicacion;
         $coincide_urgencia = !$filtro_urgencia || (strtolower(($ticket['urgencia'] ?? '')) === strtolower($filtro_urgencia));
-        return $coindice_estado && $coincide_ubicacion && $coincide_urgencia;
+        return $coincide_ubicacion && $coincide_urgencia;
     });
 }
 
@@ -66,7 +71,7 @@ $notificaciones_recientes = getNotificationsForUser(getUserId(), 10);
             <div class="col-12">
                 <form method="GET" class="d-flex gap-2">
                     <select class="form-select" name="estado" onchange="this.form.submit()">
-                        <option value="">-- Filtrar por Estado --</option>
+                        <option value="" <?php echo $filtro_estado === '' ? 'selected' : ''; ?>>-- Todos los Estados --</option>
                         <option value="Nuevo" <?php echo $filtro_estado === 'Nuevo' ? 'selected' : ''; ?>>Nuevo</option>
                         <option value="En proceso" <?php echo $filtro_estado === 'En proceso' ? 'selected' : ''; ?>>En proceso</option>
                         <option value="Resuelto" <?php echo $filtro_estado === 'Resuelto' ? 'selected' : ''; ?>>Resuelto</option>
@@ -103,7 +108,7 @@ $notificaciones_recientes = getNotificationsForUser(getUserId(), 10);
                             <th>Asunto</th>
                             <th>Ubicación</th>
                             <th>Estado</th>
-                            <th>Asignado a</th>
+                            <th>Asignado</th>
                             <th>Urgencia</th>
                             <th>Fecha</th>
                             <th>Acciones</th>

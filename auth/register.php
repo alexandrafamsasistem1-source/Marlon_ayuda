@@ -20,6 +20,12 @@ $success = '';
 
 // Procesar formulario
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isValidCsrfToken($_POST['csrf_token'] ?? '')) {
+        setFlash('error', 'La sesión del formulario expiró. Recarga la página e inténtalo nuevamente.', 'Solicitud inválida');
+        header('Location: ' . BASE_URL . '/auth/register.php');
+        exit;
+    }
+
     $nombre = trim($_POST['nombre'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -45,7 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Las contraseñas no coinciden.';
     } else {
         // Intentar crear usuario
-        $result = createUser($nombre, $email, $password, 'usuario');
+        // Las cuentas registradas por el propio usuario no requieren cambio
+        // obligatorio de contraseña al iniciar sesión.
+        $result = createUser($nombre, $email, $password, 'usuario', 'Administracion', 0);
 
         if ($result['success']) {
             $success = 'Registro exitoso. Puedes iniciar sesión ahora.';
@@ -80,7 +88,24 @@ footer{background:#fff;color:#666}
 }
 
 .password-wrapper .form-control {
-    padding-right: 2.5rem;
+    padding-right: 2.75rem;
+}
+
+.toggle-password-btn {
+    position: absolute;
+    top: 50%;
+    right: 0.65rem;
+    transform: translateY(-50%);
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: #6c757d;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.toggle-password-btn:hover {
+    color: var(--primary);
 }
 
 .toggle-password-icon {
@@ -148,6 +173,7 @@ footer{background:#fff;color:#666}
                 <?php endif; ?>
 
                 <form method="POST" novalidate>
+                    <?php echo csrfField(); ?>
                     <div class="mb-3">
                         <label for="nombre" class="form-label">Nombre Completo:</label>
                         <input type="text" class="form-control" id="nombre" name="nombre"
@@ -172,7 +198,9 @@ footer{background:#fff;color:#666}
                                    name="password" 
                                    required
                                    placeholder="Crea una contraseña">
-                            <i class="fas fa-eye toggle-password-icon" data-target="password"></i>
+                            <button type="button" class="toggle-password-btn" data-target="password" aria-label="Mostrar contraseña">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
 
                         <!-- Caja de Alerta Roja -->
@@ -196,7 +224,9 @@ footer{background:#fff;color:#666}
                                    name="password_confirm" 
                                    required
                                    placeholder="Repite la contraseña">
-                            <i class="fas fa-eye toggle-password-icon" data-target="password_confirm"></i>
+                            <button type="button" class="toggle-password-btn" data-target="password_confirm" aria-label="Mostrar contraseña">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -222,20 +252,6 @@ footer{background:#fff;color:#666}
 document.addEventListener('DOMContentLoaded', function () {
     const passwordInput = document.getElementById('password');
     const alertBox = document.getElementById('password-alert-box');
-
-    // Funcionalidad para los ojitos
-    document.querySelectorAll('.toggle-password-icon').forEach(function (icon) {
-        icon.addEventListener('click', function () {
-            const targetId = this.getAttribute('data-target');
-            const targetInput = document.getElementById(targetId);
-            if (targetInput) {
-                const isPassword = targetInput.type === 'password';
-                targetInput.type = isPassword ? 'text' : 'password';
-                this.classList.toggle('fa-eye', !isPassword);
-                this.classList.toggle('fa-eye-slash', isPassword);
-            }
-        });
-    });
 
     // Validacion y alerta roja
     if (passwordInput && alertBox) {

@@ -17,6 +17,12 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isValidCsrfToken($_POST['csrf_token'] ?? '')) {
+        setFlash('error', 'La sesión del formulario expiró. Recarga la página e inténtalo nuevamente.', 'Solicitud inválida');
+        header('Location: ' . BASE_URL . '/auth/cambiar_password.php');
+        exit;
+    }
+
     $password_nueva = $_POST['password_nueva'] ?? '';
     $password_confirmar = $_POST['password_confirmar'] ?? '';
 
@@ -91,10 +97,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         width: 100%;
     }
 
-    .password-wrapper .form-control {
-        padding-right: 2.5rem;
-    }
-
     .toggle-password-icon {
         position: absolute;
         right: 12px;
@@ -144,6 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <form method="POST" novalidate>
+                            <?php echo csrfField(); ?>
                             <!-- Campo Nueva Contraseña con Ojito Integrado -->
                             <div class="mb-3">
                                 <label for="password_nueva" class="form-label">Nueva Contraseña</label>
@@ -155,7 +158,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                            required 
                                            autocomplete="new-password"
                                            placeholder="Nueva contraseña">
-                                    <i class="fas fa-eye toggle-password-icon" data-target="password_nueva"></i>
                                 </div>
 
                                 <!-- Alerta Dinámica -->
@@ -180,7 +182,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                            required 
                                            autocomplete="new-password"
                                            placeholder="Repite la contraseña">
-                                    <i class="fas fa-eye toggle-password-icon" data-target="password_confirmar"></i>
                                 </div>
                             </div>
 
@@ -199,20 +200,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 document.addEventListener('DOMContentLoaded', function () {
     const passwordInput = document.getElementById('password_nueva');
     const alertBox = document.getElementById('password-alert-box');
-
-    // Funcionalidad para los ojitos
-    document.querySelectorAll('.toggle-password-icon').forEach(function (icon) {
-        icon.addEventListener('click', function () {
-            const targetId = this.getAttribute('data-target');
-            const targetInput = document.getElementById(targetId);
-            if (targetInput) {
-                const isPassword = targetInput.type === 'password';
-                targetInput.type = isPassword ? 'text' : 'password';
-                this.classList.toggle('fa-eye', !isPassword);
-                this.classList.toggle('fa-eye-slash', isPassword);
-            }
-        });
-    });
 
     // Validacion y alerta roja
     if (passwordInput && alertBox) {

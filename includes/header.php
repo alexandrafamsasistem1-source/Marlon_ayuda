@@ -111,7 +111,11 @@ $isPasswordChangePage = ($currentPage === 'cambiar_password.php' || !empty($_SES
                                         <?php endif; ?>
                                         <li><hr class="dropdown-divider"></li>
                                         <li class="text-center px-2 py-1">
-                                            <a href="<?php echo BASE_URL; ?>/admin/dashboard.php?marcar_leidas=1" class="btn btn-sm btn-outline-secondary w-100">Marcar todas como leídas</a>
+                                            <form method="POST" action="<?php echo BASE_URL; ?>/admin/dashboard.php">
+                                                <?php echo csrfField(); ?>
+                                                <input type="hidden" name="action" value="marcar_leidas">
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Marcar todas como leídas</button>
+                                            </form>
                                         </li>
                                     </ul>
                                 </li>

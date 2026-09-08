@@ -33,10 +33,10 @@ $start = new DateTime($selectedMonth . '-01 00:00:00');
 $end = clone $start;
 $end->modify('last day of this month')->setTime(23,59,59);
 
-// Obtener tickets del mes
+// Obtener tickets del mes (incluyendo tipo_problema)
 $pdo = getDB();
 $stmt = $pdo->prepare(
-    'SELECT t.id, t.asunto, t.estado, t.ubicacion, t.fecha_creacion, u.nombre as usuario_nombre, u.email as usuario_email
+    'SELECT t.id, t.asunto, t.estado, t.ubicacion, t.tipo_problema, t.fecha_creacion, u.nombre as usuario_nombre, u.email as usuario_email
      FROM tickets t
      LEFT JOIN usuarios u ON t.usuario_id = u.id
      WHERE t.fecha_creacion BETWEEN ? AND ?
@@ -45,15 +45,24 @@ $stmt = $pdo->prepare(
 $stmt->execute([$start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')]);
 $tickets = $stmt->fetchAll();
 
-// Resumen rápido por estado
+// Resumen por categoría (Software / Hardware / Sin clasificar) y sus estados
 $total_month = count($tickets);
-$counts_by_state = [];
+
+$software_states = [];
+$hardware_states = [];
+$unclassified_states = [];
+
 foreach ($tickets as $t) {
     $s = $t['estado'] ?? 'Sin estado';
-    if (!isset($counts_by_state[$s])) {
-        $counts_by_state[$s] = 0;
+    $tipo = strtolower(trim($t['tipo_problema'] ?? ''));
+
+    if (strpos($tipo, 'software') !== false) {
+        $software_states[$s] = ($software_states[$s] ?? 0) + 1;
+    } elseif (strpos($tipo, 'hardware') !== false) {
+        $hardware_states[$s] = ($hardware_states[$s] ?? 0) + 1;
+    } else {
+        $unclassified_states[$s] = ($unclassified_states[$s] ?? 0) + 1;
     }
-    $counts_by_state[$s]++;
 }
 
 $stateClassMap = [
@@ -63,19 +72,6 @@ $stateClassMap = [
     'Cerrado' => 're-state-chip--cerrado',
     'Sin estado' => 're-state-chip--default'
 ];
-
-$stateDisplayOrder = ['Resuelto', 'En proceso', 'Cerrado', 'Nuevo'];
-$orderedCountsByState = [];
-foreach ($stateDisplayOrder as $stateName) {
-    if (isset($counts_by_state[$stateName])) {
-        $orderedCountsByState[$stateName] = $counts_by_state[$stateName];
-    }
-}
-foreach ($counts_by_state as $stateName => $count) {
-    if (!isset($orderedCountsByState[$stateName])) {
-        $orderedCountsByState[$stateName] = $count;
-    }
-}
 
 $monthNames = [
     1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
@@ -92,7 +88,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     // BOM para Excel con UTF-8
     echo "\xEF\xBB\xBF";
     $out = fopen('php://output', 'w');
-    fputcsv($out, ['ID', 'Usuario', 'Email', 'Asunto', 'Estado', 'Ubicación', 'Fecha Creación']);
+    fputcsv($out, ['ID', 'Usuario', 'Email', 'Asunto', 'Estado', 'Tipo Problema', 'Ubicación', 'Fecha Creación']);
     foreach ($tickets as $row) {
         fputcsv($out, [
             $row['id'],
@@ -100,6 +96,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
             $row['usuario_email'],
             $row['asunto'],
             $row['estado'],
+            $row['tipo_problema'] ?? 'Sin clasificar',
             $row['ubicacion'],
             $row['fecha_creacion']
         ]);
@@ -136,9 +133,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card reportes-stat-card shadow-sm h-100">
-                <div class="card-body">
+                <div class="card-body text-center d-flex flex-column justify-content-center align-items-center">
                     <div class="reportes-stat-label">Total de tickets</div>
-                    <div class="reportes-stat-value"><?php echo $total_month; ?></div>
+                    <div class="reportes-stat-value my-1"><?php echo $total_month; ?></div>
                     <small class="text-muted">Registrados en el mes seleccionado</small>
                 </div>
             </div>
@@ -146,18 +143,69 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
         <div class="col-md-8">
             <div class="card reportes-stat-card shadow-sm h-100">
                 <div class="card-body">
-                    <div class="reportes-stat-label mb-2">Distribución por estado</div>
-                    <?php if (empty($counts_by_state)): ?>
-                        <small class="text-muted">Sin tickets para mostrar.</small>
+                    <div class="reportes-stat-label mb-3">Distribución por estado</div>
+                    
+                    <?php if (empty($software_states) && empty($hardware_states) && empty($unclassified_states)): ?>
+                        <small class="text-muted">Sin tickets registrados para mostrar.</small>
                     <?php else: ?>
-                        <div class="d-flex flex-wrap gap-2">
-                            <?php foreach ($orderedCountsByState as $state => $c): ?>
-                                <?php $chipClass = $stateClassMap[$state] ?? 're-state-chip--default'; ?>
-                                <span class="re-state-chip <?php echo $chipClass; ?>">
-                                    <?php echo sanitize($state); ?>: <?php echo (int)$c; ?>
-                                </span>
-                            <?php endforeach; ?>
+                        <!-- Desglose Software -->
+                        <div class="mb-2">
+                            <div class="fw-bold mb-1" style="color: #006547; font-size: 0.9rem;">
+                                <i class="fas fa-laptop-code me-1"></i> Software
+                            </div>
+                            <?php if (empty($software_states)): ?>
+                                <small class="text-muted d-block ms-2">Sin tickets registrados</small>
+                            <?php else: ?>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <?php foreach ($software_states as $state => $c): ?>
+                                        <?php $chipClass = $stateClassMap[$state] ?? 're-state-chip--default'; ?>
+                                        <span class="re-state-chip <?php echo $chipClass; ?>">
+                                            <?php echo sanitize($state); ?>: <?php echo (int)$c; ?>
+                                        </span>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
+
+                        <hr class="my-2" style="border-top: 1px dashed #e0e0e0;">
+
+                        <!-- Desglose Hardware -->
+                        <div class="mb-2">
+                            <div class="fw-bold mb-1" style="color: #C57D88; font-size: 0.9rem;">
+                                <i class="fas fa-desktop me-1"></i> Hardware
+                            </div>
+                            <?php if (empty($hardware_states)): ?>
+                                <small class="text-muted d-block ms-2">Sin tickets registrados</small>
+                            <?php else: ?>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <?php foreach ($hardware_states as $state => $c): ?>
+                                        <?php $chipClass = $stateClassMap[$state] ?? 're-state-chip--default'; ?>
+                                        <span class="re-state-chip <?php echo $chipClass; ?>">
+                                            <?php echo sanitize($state); ?>: <?php echo (int)$c; ?>
+                                        </span>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Desglose Sin clasificar -->
+                        <?php if (!empty($unclassified_states)): ?>
+                            <hr class="my-2" style="border-top: 1px dashed #e0e0e0;">
+                            <div>
+                                <div class="fw-bold mb-1 text-secondary" style="font-size: 0.9rem;">
+                                    <i class="fas fa-question-circle me-1"></i> Sin clasificar
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <?php foreach ($unclassified_states as $state => $c): ?>
+                                        <?php $chipClass = $stateClassMap[$state] ?? 're-state-chip--default'; ?>
+                                        <span class="re-state-chip <?php echo $chipClass; ?>">
+                                            <?php echo sanitize($state); ?>: <?php echo (int)$c; ?>
+                                        </span>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
                     <?php endif; ?>
                 </div>
             </div>
@@ -181,6 +229,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
                             <th>Email</th>
                             <th>Asunto</th>
                             <th>Estado</th>
+                            <th>Tipo</th>
                             <th>Ubicación</th>
                             <th>Fecha</th>
                         </tr>
@@ -188,7 +237,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
                     <tbody>
                         <?php if (empty($tickets)): ?>
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No se encontraron tickets en este mes.</td>
+                                <td colspan="8" class="text-center text-muted py-4">No se encontraron tickets en este mes.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($tickets as $ticket): ?>
@@ -199,6 +248,15 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
                                     <td><?php echo sanitize($ticket['usuario_email']); ?></td>
                                     <td><?php echo sanitize(mb_substr($ticket['asunto'], 0, 80)); ?></td>
                                     <td><span class="re-state-chip <?php echo $statusClass; ?>"><?php echo sanitize($ticket['estado']); ?></span></td>
+                                    <td>
+                                        <?php if (!empty($ticket['tipo_problema'])): ?>
+                                            <span class="badge bg-info text-dark" style="font-size: 0.75rem;">
+                                                <?php echo sanitize($ticket['tipo_problema']); ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-muted small">Sin clasificar</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?php echo sanitize($ticket['ubicacion']); ?></td>
                                     <td><small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($ticket['fecha_creacion'])); ?></small></td>
                                 </tr>
