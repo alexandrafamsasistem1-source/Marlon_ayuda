@@ -12,11 +12,11 @@ if (session_status() === PHP_SESSION_NONE) {
     <!-- Footer -->
     <footer class="site-footer bg-light border-top py-4 mt-auto">
         <div class="container">
-            <!-- Filas de columnas alineadas dinámicamente -->
-            <div class="row g-4 text-center text-md-start justify-content-between">
+            <!-- Filas de columnas centradas -->
+            <div class="row g-4 text-center justify-content-center">
                 
                 <!-- Columna 1: Sistema -->
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-5 col-lg-4">
                     <h5 class="fw-bold text-dark mb-2">Sistema de Tickets de Ayuda</h5>
                     <p class="small text-muted mb-2">Gestión de solicitudes de soporte Alexandra Farms S.A.S.</p>
                     <ul class="list-unstyled small mb-0">
@@ -26,23 +26,13 @@ if (session_status() === PHP_SESSION_NONE) {
                 </div>
 
                 <!-- Columna 2: Ubicaciones -->
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-5 col-lg-4">
                     <h5 class="fw-bold text-dark mb-2">Ubicaciones</h5>
                     <p class="small text-muted mb-0">
                         <i class="fas fa-map-marker-alt text-success me-2"></i>Finca El Jardín<br>
                         <i class="fas fa-map-marker-alt text-success me-2"></i>San Ignacio
                     </p>
                 </div>
-
-                <!-- Columna 3: Contacto -->
-                <div class="col-12 col-md-4">
-                    <h5 class="fw-bold text-dark mb-2">Contacto</h5>
-                    <ul class="list-unstyled small mb-0">
-                        <li class="text-muted"><i class="fas fa-envelope text-success me-2"></i>soporte@alexandrafarms.com</li>
-                        <li class="text-muted"><i class="fas fa-phone text-success me-2"></i>+57 320 000 0000</li>
-                    </ul>
-                </div>
-
             </div>
 
             <hr class="my-3 text-muted opacity-25">

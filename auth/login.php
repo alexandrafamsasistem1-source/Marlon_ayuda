@@ -34,6 +34,12 @@ if (isset($_GET['logout'])) {
 
 // Procesar formulario
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isValidCsrfToken($_POST['csrf_token'] ?? '')) {
+        setFlash('error', 'La sesión del formulario expiró. Inténtalo nuevamente.', 'Solicitud inválida');
+        header('Location: ' . BASE_URL . '/auth/login.php');
+        exit();
+    }
+
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
@@ -62,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             } else {
                 // Login exitoso - guardar sesión
+                session_regenerate_id(true);
                 $_SESSION['usuario_id'] = $usuario['id'];
                 $_SESSION['nombre'] = $usuario['nombre'];
                 $_SESSION['email'] = $usuario['email'];
@@ -113,7 +120,20 @@ footer{background:#fff;color:#666}
 }
 
 .password-wrapper .form-control {
-    padding-right: 2.5rem;
+    padding-right: 2.75rem;
+}
+
+.toggle-password-btn {
+    position: absolute;
+    top: 50%;
+    right: 0.65rem;
+    transform: translateY(-50%);
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: #6c757d;
+    line-height: 1;
+    cursor: pointer;
 }
 
 .toggle-password-icon {
@@ -164,6 +184,7 @@ footer{background:#fff;color:#666}
                 <h3 class="card-title text-center mb-4">Iniciar Sesión</h3>
 
                 <form method="POST" novalidate>
+                    <?php echo csrfField(); ?>
                     <div class="mb-3">
                         <label for="email" class="form-label">Email:</label>
                         <input type="email" class="form-control" id="email" name="email" 
@@ -176,7 +197,9 @@ footer{background:#fff;color:#666}
                         <label for="password" class="form-label">Contraseña:</label>
                         <div class="password-wrapper">
                             <input type="password" class="form-control" id="password" name="password" required>
-                            <i class="fas fa-eye toggle-password-icon" data-target="password"></i>
+                            <button type="button" class="toggle-password-btn" data-target="password" aria-label="Mostrar contraseña">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
 
                         <!-- Caja de Alerta Roja -->
@@ -212,20 +235,6 @@ footer{background:#fff;color:#666}
 document.addEventListener('DOMContentLoaded', function () {
     const passwordInput = document.getElementById('password');
     const alertBox = document.getElementById('password-alert-box');
-
-    // Funcionalidad para el ojito
-    document.querySelectorAll('.toggle-password-icon').forEach(function (icon) {
-        icon.addEventListener('click', function () {
-            const targetId = this.getAttribute('data-target');
-            const targetInput = document.getElementById(targetId);
-            if (targetInput) {
-                const isPassword = targetInput.type === 'password';
-                targetInput.type = isPassword ? 'text' : 'password';
-                this.classList.toggle('fa-eye', !isPassword);
-                this.classList.toggle('fa-eye-slash', isPassword);
-            }
-        });
-    });
 
     // Validacion y alerta roja
     if (passwordInput && alertBox) {

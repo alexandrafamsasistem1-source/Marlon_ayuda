@@ -22,6 +22,16 @@ if (!isAdmin()) {
 $pageTitle = 'Ver Ticket (Admin)';
 $admin_id = getUserId();
 $ticket_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$defaultReturnUrl = BASE_URL . '/admin/dashboard.php';
+$returnUrl = $_POST['return'] ?? $_GET['return'] ?? $defaultReturnUrl;
+if (
+    !is_string($returnUrl)
+    || strpos($returnUrl, BASE_URL . '/admin/') !== 0
+    || strpos($returnUrl, "\r") !== false
+    || strpos($returnUrl, "\n") !== false
+) {
+    $returnUrl = $defaultReturnUrl;
+}
 
 // Obtener Ticket
 $ticket = getTicketById($ticket_id);
@@ -32,6 +42,8 @@ if (!$ticket) {
 }
 
 $urgencia_actual = $ticket['urgencia'] ?? 'Media';
+$tipo_problema_actual = $ticket['tipo_problema'] ?? null;
+
 $estadoClass = 're-state-chip re-state-chip--default';
 switch($ticket['estado'] ?? '') {
     case 'Nuevo':
@@ -52,13 +64,20 @@ $admins = getAllAdmins();
 
 // Procesamiento de Formularios POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $redirectUrl = BASE_URL . '/admin/ver_ticket.php?id=' . $ticket_id;
-    
-    // Accion: Cambiar estado / asignacion / urgencia
+    $redirectUrl = BASE_URL . '/admin/ver_ticket.php?id=' . $ticket_id . '&return=' . urlencode($returnUrl);
+
+    if (!isValidCsrfToken($_POST['csrf_token'] ?? '')) {
+        setFlash('error', 'La sesión del formulario expiró. Recarga la página e inténtalo nuevamente.', 'Solicitud inválida');
+        header('Location: ' . $redirectUrl);
+        exit;
+    }
+
+    // Accion: Cambiar estado / asignacion / urgencia / tipo de problema
     if ($_POST['action'] === 'cambiar_estado') {
         $nuevo_estado = $_POST['nuevo_estado'] ?? '';
         $asignado_a = $_POST['asignado_a'] ?? null;
         $urgencia = $_POST['urgencia'] ?? null;
+        $tipo_problema = $_POST['tipo_problema'] ?? null;
 
         if (empty($nuevo_estado)) {
             setFlash('error', 'Debes seleccionar un estado.', 'No se pudo actualizar');
@@ -69,20 +88,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             header('Location: ' . $redirectUrl);
             exit;
         } else {
-            $asignado_id = null;
+            $asignado_id = $ticket['asignado_a'] ?? null;
             if (isSuperAdmin() && $asignado_a && $asignado_a !== 'ninguno') {
                 $asignado_id = $asignado_a;
-            } elseif ($asignado_a && $asignado_a !== 'ninguno') {
+            } elseif (isSuperAdmin() && $asignado_a === 'ninguno') {
+                $asignado_id = null;
+            } elseif (!$asignado_a && isSuperAdmin()) {
+                $asignado_id = null;
+            } elseif ($asignado_a && $asignado_a !== 'ninguno' && !isSuperAdmin()) {
                 setFlash('error', 'Solo el superadmin puede asignar tickets.', 'No autorizado');
                 header('Location: ' . $redirectUrl);
                 exit;
             }
 
+            // Preparar tipo de problema (Solo editable por SuperAdmin o manteniendo el valor actual)
+            $nuevo_tipo_problema = null;
+            if (isSuperAdmin()) {
+                if (!empty($tipo_problema) && in_array($tipo_problema, ['Software', 'Hardware'])) {
+                    $nuevo_tipo_problema = $tipo_problema;
+                } else {
+                    $nuevo_tipo_problema = $tipo_problema_actual;
+                }
+            } else {
+                $nuevo_tipo_problema = $tipo_problema_actual;
+            }
+
             $estado_anterior = $ticket['estado'] ?? '';
             $asignado_anterior = $ticket['asignado_a'] ?? null;
             $urgencia_anterior = $ticket['urgencia'] ?? 'Media';
+            $tipo_problema_anterior = $ticket['tipo_problema'] ?? null;
 
-            if (updateTicketStatus($ticket_id, $nuevo_estado, $asignado_id)) {
+            $urgencia_cambio = $urgencia !== null
+                && strtolower((string)$urgencia) !== strtolower((string)$urgencia_anterior);
+            $estado_cambio = $nuevo_estado !== $estado_anterior;
+            $asignacion_cambio = (string)($asignado_anterior ?? '') !== (string)($asignado_id ?? '');
+            $tipo_cambio = $nuevo_tipo_problema !== $tipo_problema_anterior;
+
+            if (!$estado_cambio && !$asignacion_cambio && !$tipo_cambio && !$urgencia_cambio) {
+                setFlash('warning', 'Debes realizar al menos un cambio antes de guardar.', 'Sin cambios');
+                header('Location: ' . $redirectUrl);
+                exit;
+            }
+
+            if (updateTicketStatus($ticket_id, $nuevo_estado, $asignado_id, $nuevo_tipo_problema)) {
                 
                 // Bitácora 1: Estado
                 if ($nuevo_estado !== $estado_anterior) {
@@ -108,7 +156,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     registrarHistorialTicket($ticket_id, $admin_id, 'reasignacion', $descReasig);
                 }
 
-                // Bitácora 3: Urgencia
+                // Bitácora 3: Clasificación de problema (Software/Hardware)
+                if ($nuevo_tipo_problema !== $tipo_problema_anterior) {
+                    $clasifTexto = $nuevo_tipo_problema ? $nuevo_tipo_problema : 'Sin clasificar';
+                    $descTipo = "Clasificó el tipo de problema como '" . $clasifTexto . "'";
+                    registrarHistorialTicket($ticket_id, $admin_id, 'clasificacion_problema', $descTipo);
+                }
+
+                // Bitácora 4: Urgencia
                 if ($urgencia !== null) {
                     try {
                         $pdo = getDB();
@@ -199,7 +254,7 @@ include __DIR__ . '/../includes/header.php';
         <div class="col-lg-8">
             <div class="card shadow mb-4">
                 <!-- Banner Verde del Titulo -->
-                <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #0c5737;">
+                <div class="card-header text-white d-flex justify-content-between align-items-center flex-wrap gap-2" style="background-color: #0c5737;">
                     <h5 class="mb-0 fw-bold">
                         <i class="fas fa-ticket-alt me-2"></i>Ticket #<?php echo $ticket['id']; ?>
                     </h5>
@@ -209,39 +264,44 @@ include __DIR__ . '/../includes/header.php';
                 </div>
 
                 <div class="card-body p-4">
-                    <!-- Titulo y Urgencia -->
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h4 class="fw-bold mb-0 text-uppercase">
+                    <!-- Titulo y Urgencia (Ajustado para Responsive) -->
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
+                        <h4 class="fw-bold mb-0 text-uppercase text-break">
                             <?php echo sanitize($ticket['titulo'] ?? $ticket['asunto'] ?? 'Sin Título'); ?>
                         </h4>
-                        <span class="badge bg-warning text-dark px-3 py-2 fw-semibold" style="font-size: 0.85rem;">
-                            Urgencia: <?php echo sanitize($ticket['urgencia'] ?? 'Media'); ?>
-                        </span>
+                        <div class="d-flex flex-wrap gap-2 mt-2 mt-md-0">
+                            <?php if (!empty($ticket['tipo_problema'])): ?>
+                                <span class="badge bg-info text-dark px-3 py-2 fw-semibold" style="font-size: 0.85rem;">
+                                    <i class="fas fa-laptop-code me-1"></i><?php echo sanitize($ticket['tipo_problema']); ?>
+                                </span>
+                            <?php endif; ?>
+                            <span class="badge bg-warning text-dark px-3 py-2 fw-semibold" style="font-size: 0.85rem;">
+                                Urgencia: <?php echo sanitize($ticket['urgencia'] ?? 'Media'); ?>
+                            </span>
+                        </div>
                     </div>
+
                     <!-- Datos del Ticket -->
                     <div class="row g-3 mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-sm-6">
                             <span class="text-muted d-block small">Estado Actual:</span>
-                            <span class="<?php echo $estadoClass; ?> px-3 py-2 mt-1"><?php echo sanitize($ticket['estado']); ?></span>
+                            <span class="<?php echo $estadoClass; ?> px-3 py-2 mt-1 d-inline-block"><?php echo sanitize($ticket['estado']); ?></span>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-sm-6">
                             <span class="text-muted d-block small">Ubicación:</span>
-                            <span class="fw-bold text-dark">
+                            <span class="fw-bold text-dark text-break">
                                 <i class="fas fa-map-marker-alt text-danger me-1"></i>
                                 <?php echo sanitize($ticket['ubicacion'] ?? 'No especificada'); ?>
                             </span>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-sm-6">
                             <span class="text-muted d-block small">Usuario que Reporta:</span>
-                            <strong class="text-dark"><?php echo sanitize($ticket['usuario_nombre'] ?? 'Usuario'); ?></strong><br>
-                            <small class="text-muted"><?php echo sanitize($ticket['usuario_email'] ?? ''); ?></small>
+                            <strong class="text-dark text-break"><?php echo sanitize($ticket['usuario_nombre'] ?? 'Usuario'); ?></strong><br>
+                            <small class="text-muted text-break"><?php echo sanitize($ticket['usuario_email'] ?? ''); ?></small>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 col-sm-6">
                             <span class="text-muted d-block small">Asignado a:</span>
-                            <strong class="text-dark"><?php echo sanitize($ticket['asignado_nombre'] ?? 'Sin asignar'); ?></strong>
-                            <?php if (!empty($ticket['asignado_nombre'])): ?>
-                               
-                            <?php endif; ?>
+                            <strong class="text-dark text-break"><?php echo sanitize($ticket['asignado_nombre'] ?? 'Sin asignar'); ?></strong>
                         </div>
                     </div>
 
@@ -255,50 +315,52 @@ include __DIR__ . '/../includes/header.php';
                         </div>
                     </div>
 
-                  
                     <!-- Conversación / Mensajes -->
                     <h5 class="fw-bold mb-3">Conversación</h5>
                     <div class="conversation-section mb-4">
                         <?php if (empty($respuestas)): ?>
                             <div class="alert alert-light border text-muted">No hay mensajes en esta conversación aún.</div>
                         <?php else: ?>
-                                <?php foreach ($respuestas as $resp): ?>
-                                    <div class="card mb-2 bg-light border-0">
-                                            <div class="card-body p-3">
-                                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <strong class="text-dark"><?php echo sanitize($resp['autor_nombre'] ?? $resp['usuario_nombre'] ?? $resp['nombre'] ?? 'Usuario'); ?></strong>
-                                                    <div class="d-flex gap-2 align-items-center">
-                                                        <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($resp['fecha_creacion'])); ?></small>
-                                                        <form method="POST" data-swal-confirm="¿Eliminar esta respuesta?" data-swal-title="Eliminar respuesta" class="m-0 p-0">
-                                                            <input type="hidden" name="action" value="delete_response">
-                                                            <input type="hidden" name="response_id" value="<?php echo (int)$resp['id']; ?>">
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar respuesta">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                                <p class="mb-0 text-secondary"><?php echo nl2br(sanitize($resp['mensaje'])); ?></p>
+                            <?php foreach ($respuestas as $resp): ?>
+                                <div class="card mb-2 bg-light border-0">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+                                            <strong class="text-dark"><?php echo sanitize($resp['autor_nombre'] ?? $resp['usuario_nombre'] ?? $resp['nombre'] ?? 'Usuario'); ?></strong>
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($resp['fecha_creacion'])); ?></small>
+                                                <form method="POST" data-swal-confirm="¿Eliminar esta respuesta?" data-swal-title="Eliminar respuesta" class="m-0 p-0">
+                                                    <?php echo csrfField(); ?>
+                                                    <input type="hidden" name="action" value="delete_response">
+                                                    <input type="hidden" name="response_id" value="<?php echo (int)$resp['id']; ?>">
+                                                    <input type="hidden" name="return" value="<?php echo sanitize($returnUrl); ?>">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar respuesta">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
-                                <?php endforeach; ?>
+                                        <p class="mb-0 text-secondary text-break"><?php echo nl2br(sanitize($resp['mensaje'])); ?></p>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
 
                     <!-- Caja de Respuesta -->
                     <form method="POST">
+                        <?php echo csrfField(); ?>
                         <input type="hidden" name="action" value="responder">
+                        <input type="hidden" name="return" value="<?php echo sanitize($returnUrl); ?>">
                         <div class="mb-3">
                             <textarea class="form-control" name="mensaje" rows="3" placeholder="Escribe tu respuesta aquí..." required></textarea>
                         </div>
-                        <div class="d-flex gap-2">
-                            <a href="<?php echo BASE_URL; ?>/admin/dashboard.php" class="btn btn-secondary">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a href="<?php echo sanitize($returnUrl); ?>" class="btn btn-secondary flex-grow-1 flex-sm-grow-0">
                                 <i class="fas fa-arrow-left me-1"></i> Volver
                             </a>
-                            <button type="submit" class="btn text-white fw-bold px-4" style="background-color: #0c5737;">
+                            <button type="submit" class="btn text-white fw-bold px-4 flex-grow-1 flex-sm-grow-0" style="background-color: #0c5737;">
                                 <i class="fas fa-paper-plane me-1"></i> Enviar Respuesta
                             </button>
-                            
                         </div>
                     </form>
 
@@ -319,8 +381,10 @@ include __DIR__ . '/../includes/header.php';
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" novalidate>
+                    <form method="POST" novalidate data-unsaved-form>
+                        <?php echo csrfField(); ?>
                         <input type="hidden" name="action" value="cambiar_estado">
+                        <input type="hidden" name="return" value="<?php echo sanitize($returnUrl); ?>">
 
                         <div class="mb-3">
                             <label for="nuevo_estado" class="form-label">Nuevo Estado:</label>
@@ -344,6 +408,15 @@ include __DIR__ . '/../includes/header.php';
                                             <?php echo sanitize($admin['nombre']); ?>
                                         </option>
                                     <?php endforeach; ?>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="tipo_problema" class="form-label">Tipo de Problema:</label>
+                                <select class="form-select" id="tipo_problema" name="tipo_problema">
+                                    <option value="">-- Seleccionar Tipo --</option>
+                                    <option value="Software" <?php echo ($ticket['tipo_problema'] ?? '') === 'Software' ? 'selected' : ''; ?>>Software</option>
+                                    <option value="Hardware" <?php echo ($ticket['tipo_problema'] ?? '') === 'Hardware' ? 'selected' : ''; ?>>Hardware</option>
                                 </select>
                             </div>
                         <?php endif; ?>
@@ -390,7 +463,7 @@ include __DIR__ . '/../includes/header.php';
                                                 <?php echo date('d/m/Y H:i', strtotime($evento['fecha_creacion'])); ?>
                                             </span>
                                         </div>
-                                        <div class="text-secondary small mt-1" style="font-size: 0.85rem;">
+                                        <div class="text-secondary small mt-1 text-break" style="font-size: 0.85rem;">
                                             <i class="fas fa-angle-right text-muted me-1"></i>
                                             <?php echo sanitize($evento['descripcion']); ?>
                                         </div>
@@ -402,7 +475,6 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
 
-            <!-- 3. (Botón movido arriba, se dejó este espacio vacío intencionalmente) -->
             <div style="height:0;margin-bottom:0;"></div>
 
         </div>

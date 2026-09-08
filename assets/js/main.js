@@ -2,8 +2,6 @@
  * Script JavaScript principal
  */
 
-window.originalAlert = window.alert.bind(window);
-
 window.alert = function(message) {
     if (typeof Swal !== 'undefined') {
         Swal.fire({
@@ -15,7 +13,7 @@ window.alert = function(message) {
         return;
     }
 
-    return window.originalAlert ? window.originalAlert(message) : undefined;
+    console.error('SweetAlert2 no está disponible:', message);
 };
 
 // Eventos que se ejecutan al cargar la página
@@ -87,13 +85,94 @@ document.addEventListener('DOMContentLoaded', function() {
     const formsToConfirm = document.querySelectorAll('form[data-confirm]');
     formsToConfirm.forEach(form => {
         form.addEventListener('submit', function(e) {
+            e.preventDefault();
             const message = this.dataset.confirm || '¿Estás seguro?';
-            if (!confirm(message)) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Confirmar acción',
+                text: message,
+                showCancelButton: true,
+                confirmButtonText: 'Sí, continuar',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true,
+                focusCancel: true
+            }).then(result => {
+                if (result.isConfirmed) {
+                    this.submit();
+                }
+            });
+        });
+    });
+
+    // Evitar envíos duplicados en formularios de creación.
+    const singleSubmitForms = document.querySelectorAll('form[data-disable-on-submit]');
+    singleSubmitForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            if (this.dataset.submitting === 'true') {
                 e.preventDefault();
-                return false;
+                return;
+            }
+
+            this.dataset.submitting = 'true';
+            const submitButton = this.querySelector('[data-submit-button]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.setAttribute('aria-busy', 'true');
+                submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span> Enviando...';
             }
         });
     });
+
+    // Advertir antes de abandonar una pantalla con cambios sin guardar.
+    const unsavedForms = document.querySelectorAll('form[data-unsaved-form]');
+    let hasUnsavedChanges = false;
+    let isSubmittingUnsavedForm = false;
+
+    unsavedForms.forEach(form => {
+        form.addEventListener('input', function() {
+            hasUnsavedChanges = true;
+        });
+        form.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+        });
+        form.addEventListener('submit', function() {
+            isSubmittingUnsavedForm = true;
+            hasUnsavedChanges = false;
+        });
+    });
+
+    if (unsavedForms.length > 0) {
+        document.querySelectorAll('a[href]').forEach(link => {
+            link.addEventListener('click', function(event) {
+                if (!hasUnsavedChanges || isSubmittingUnsavedForm) {
+                    return;
+                }
+
+                const href = this.getAttribute('href');
+                if (!href || href === '#' || href.startsWith('javascript:')) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Cambios sin guardar',
+                    text: 'Tienes cambios sin guardar. ¿Deseas salir sin guardarlos?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Salir sin guardar',
+                    cancelButtonText: 'Continuar editando',
+                    reverseButtons: true,
+                    focusCancel: true
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        isSubmittingUnsavedForm = true;
+                        window.location.href = href;
+                    }
+                });
+            });
+        });
+    }
 
     // 5. Confirmación elegante con SweetAlert2 para acciones destructivas
     const swalConfirmElements = document.querySelectorAll('[data-swal-confirm]');
@@ -133,8 +212,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         runAction();
                     }
                 });
-            } else if (window.originalAlert && window.confirm(message)) {
-                runAction();
+            } else {
+                console.error('SweetAlert2 no está disponible:', message);
             }
         });
     });
@@ -211,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Funciones auxiliares globales
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        alert('Copiado al portapapeles');
+        showNotification('Copiado al portapapeles', 'success');
     });
 }
 
@@ -242,7 +321,7 @@ function showNotification(message, type = 'info') {
         return;
     }
 
-    window.alert(message);
+    console.error('SweetAlert2 no está disponible:', message);
 }
 
 function setButtonLoading(buttonId, loading = true) {

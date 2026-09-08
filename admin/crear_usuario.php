@@ -27,9 +27,15 @@ if ($userId > 0) {
     }
 }
 
-// Manejar eliminación de usuario
-if (isset($_GET['delete'])) {
-    $deleteId = (int)$_GET['delete'];
+// Manejar eliminación de usuario mediante POST protegido
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_user') {
+    if (!isValidCsrfToken($_POST['csrf_token'] ?? '')) {
+        setFlash('error', 'La sesión del formulario expiró. Recarga la página e inténtalo nuevamente.', 'Solicitud inválida');
+        header('Location: ' . BASE_URL . '/admin/crear_usuario.php');
+        exit;
+    }
+
+    $deleteId = (int)($_POST['user_id'] ?? 0);
     if ($deleteId > 0 && $deleteId !== getUserId()) {  // No permitir eliminar su propio usuario
         $result = deleteUser($deleteId);
         if ($result['success']) {
@@ -45,18 +51,28 @@ if (isset($_GET['delete'])) {
 }
 
 // Manejar POST (crear o actualizar usuario)
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isValidCsrfToken($_POST['csrf_token'] ?? '')) {
+        setFlash('error', 'La sesión del formulario expiró. Recarga la página e inténtalo nuevamente.', 'Solicitud inválida');
+        header('Location: ' . BASE_URL . '/admin/crear_usuario.php');
+        exit;
+    }
+
     $nombre = trim($_POST['nombre'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $password_confirm = $_POST['password_confirm'] ?? '';
     $rol = trim($_POST['rol'] ?? 'usuario');
+    $area = trim($_POST['area'] ?? '');
     $editId = isset($_POST['user_id']) ? (int)$_POST['user_id'] : null;
 
     $allowedRoles = ['usuario', 'admin'];
     if (isSuperAdmin()) {
         $allowedRoles[] = 'superadmin';
     }
+
+    // Lista de áreas permitidas actualizada
+    $allowedAreas = ['Administracion', 'Produccion', 'Juridica', 'Cartera', 'Gestion Humana'];
 
     // Validaciones
     if (empty($nombre)) {
@@ -67,6 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'El email no es válido.';
     } elseif (!in_array($rol, $allowedRoles, true)) {
         $error = 'Rol no válido.';
+    } elseif (empty($area) || !in_array($area, $allowedAreas, true)) {
+        $error = 'Debes seleccionar un área válida.';
     } else {
         // Validación de contraseña para creación
         if ($editId === null) {
@@ -92,8 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Si no hay errores, proceder a guardar
         if (empty($error)) {
             if ($editId !== null) {
-                // Actualizar usuario existente
-                $result = updateUser($editId, $nombre, $email, $rol, $password ?: null);
+                // Actualizar usuario existente (SE CORRIGIÓ EL ORDEN DE $area Y $password)
+                $result = updateUser($editId, $nombre, $email, $rol, $area, $password ?: null);
                 if ($result['success']) {
                     setFlash('success', $result['message']);
                     header("Location: " . BASE_URL . "/admin/crear_usuario.php");
@@ -103,9 +121,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } else {
                 // Crear nuevo usuario
-                $result = createUser($nombre, $email, $password, $rol);
+                $result = createUser($nombre, $email, $password, $rol, $area);
                 if ($result['success']) {
-                    $success = 'Usuario creado correctamente.';
+                    $success = 'Usuario creado correctamente con su área asignada.';
                     // Limpiar formulario
                     $_POST = [];
                 } else {
@@ -130,7 +148,20 @@ $allUsers = getAllUsers(100, 0);
 }
 
 .password-wrapper .form-control {
-    padding-right: 2.5rem;
+    padding-right: 2.75rem;
+}
+
+.toggle-password-btn {
+    position: absolute;
+    top: 50%;
+    right: 0.65rem;
+    transform: translateY(-50%);
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: #6c757d;
+    line-height: 1;
+    cursor: pointer;
 }
 
 .toggle-password-icon {
@@ -170,7 +201,7 @@ $allUsers = getAllUsers(100, 0);
 
 /* Contenedor con Scroll Horizontal y Vertical */
 .table-responsive-scroll {
-    max-height: 450px; /* Ajusta la altura según prefieras */
+    max-height: 450px;
     overflow-x: auto !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
@@ -183,6 +214,30 @@ $allUsers = getAllUsers(100, 0);
     z-index: 5;
     background-color: #f8f9fa;
     box-shadow: inset 0 -1px 0 #dee2e6;
+}
+
+.user-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-form-actions .btn {
+    margin-left: 0 !important;
+}
+
+@media (max-width: 576px) {
+    .user-form-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.65rem;
+    }
+
+    .user-form-actions .btn {
+        width: 100%;
+        margin: 0 !important;
+    }
 }
 </style>
 
@@ -209,21 +264,39 @@ $allUsers = getAllUsers(100, 0);
         <?php endif; ?>
 
         <form method="POST" class="row g-3" novalidate>
+            <?php echo csrfField(); ?>
             <?php if ($userId): ?>
                 <input type="hidden" name="user_id" value="<?php echo (int)$userId; ?>">
             <?php endif; ?>
             
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Nombre</label>
                 <input type="text" class="form-control" name="nombre" required 
                        value="<?php echo ($editingUser && isset($editingUser['nombre'])) ? sanitize($editingUser['nombre']) : (isset($_POST['nombre']) ? sanitize($_POST['nombre']) : ''); ?>">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Email</label>
                 <input type="email" class="form-control" name="email" required 
                        value="<?php echo ($editingUser && isset($editingUser['email'])) ? sanitize($editingUser['email']) : (isset($_POST['email']) ? sanitize($_POST['email']) : ''); ?>">
             </div>
-            <div class="col-md-4">
+            
+            <!-- Campo Selección de Área con las nuevas opciones -->
+            <div class="col-md-3">
+                <label class="form-label">Área</label>
+                <select class="form-select" name="area" required>
+                    <option value="">-- Seleccionar Área --</option>
+                    <?php 
+                        $currentArea = ($editingUser && isset($editingUser['area'])) ? $editingUser['area'] : (isset($_POST['area']) ? $_POST['area'] : '');
+                    ?>
+                    <option value="Administracion" <?php echo ($currentArea === 'Administracion') ? 'selected' : ''; ?>>Administración</option>
+                    <option value="Produccion" <?php echo ($currentArea === 'Produccion') ? 'selected' : ''; ?>>Producción</option>
+                    <option value="Juridica" <?php echo ($currentArea === 'Juridica') ? 'selected' : ''; ?>>Jurídica</option>
+                    <option value="Cartera" <?php echo ($currentArea === 'Cartera') ? 'selected' : ''; ?>>Cartera</option>
+                    <option value="Gestion Humana" <?php echo ($currentArea === 'Gestion Humana') ? 'selected' : ''; ?>>Gestión Humana</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
                 <label class="form-label">Rol</label>
                 <select class="form-select" name="rol" required>
                     <option value="usuario" <?php 
@@ -247,7 +320,9 @@ $allUsers = getAllUsers(100, 0);
                 </label>
                 <div class="password-wrapper">
                     <input type="password" class="form-control" id="password" name="password" <?php echo !$userId ? 'required' : ''; ?>>
-                    <i class="fas fa-eye toggle-password-icon" data-target="password"></i>
+                    <button type="button" class="toggle-password-btn" data-target="password" aria-label="Mostrar contraseña">
+                        <i class="fas fa-eye"></i>
+                    </button>
                 </div>
 
                 <!-- Caja de Alerta de Requisitos -->
@@ -266,27 +341,28 @@ $allUsers = getAllUsers(100, 0);
                 <label class="form-label">Confirmar contraseña</label>
                 <div class="password-wrapper">
                     <input type="password" class="form-control" id="password_confirm" name="password_confirm" <?php echo !$userId ? 'required' : ''; ?>>
-                    <i class="fas fa-eye toggle-password-icon" data-target="password_confirm"></i>
+                    <button type="button" class="toggle-password-btn" data-target="password_confirm" aria-label="Mostrar contraseña">
+                        <i class="fas fa-eye"></i>
+                    </button>
                 </div>
             </div>
 
-            <div class="col-12">
+            <div class="col-12 user-form-actions">
                 <button type="submit" class="btn btn-success">
                     <i class="fas fa-save"></i> <?php echo $userId ? 'Actualizar usuario' : 'Crear usuario'; ?>
                 </button>
                 <?php if ($userId): ?>
-                    <a href="<?php echo BASE_URL; ?>/admin/crear_usuario.php" class="btn btn-secondary ms-2">
+                    <a href="<?php echo BASE_URL; ?>/admin/crear_usuario.php" class="btn btn-secondary">
                         <i class="fas fa-times"></i> Cancelar edición
                     </a>
                 <?php endif; ?>
-                <a href="<?php echo BASE_URL; ?>/admin/dashboard.php" class="btn btn-secondary ms-2">
+                <a href="<?php echo BASE_URL; ?>/admin/dashboard.php" class="btn btn-secondary">
                     Volver al Panel
                 </a>
             </div>
         </form>
     </div>
 </div>
-
 
 <!-- Lista de Usuarios -->
 <div class="card shadow card-tabla-usuarios">
@@ -305,6 +381,7 @@ $allUsers = getAllUsers(100, 0);
                             <th scope="col" style="width: 80px;"><i class="fas fa-id-card me-1"></i> ID</th>
                             <th scope="col"><i class="fas fa-user me-1"></i> Nombre</th>
                             <th scope="col"><i class="fas fa-envelope me-1"></i> Email</th>
+                            <th scope="col"><i class="fas fa-building me-1"></i> Área</th>
                             <th scope="col"><i class="fas fa-shield-alt me-1"></i> Rol</th>
                             <th scope="col"><i class="fas fa-calendar-alt me-1"></i> Registro</th>
                             <th scope="col" class="text-center" style="width: 170px;"><i class="fas fa-cog me-1"></i> Acciones</th>
@@ -316,6 +393,20 @@ $allUsers = getAllUsers(100, 0);
                                 <td class="fw-bold"><?php echo (int)$user['id']; ?></td>
                                 <td class="text-nowrap"><?php echo sanitize($user['nombre']); ?></td>
                                 <td class="text-nowrap"><?php echo sanitize($user['email']); ?></td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        <?php 
+                                            $areaDisplay = [
+                                                'Administracion' => 'Administración',
+                                                'Produccion' => 'Producción',
+                                                'Juridica' => 'Jurídica',
+                                                'Cartera' => 'Cartera',
+                                                'Gestion Humana' => 'Gestión Humana'
+                                            ];
+                                            echo sanitize($areaDisplay[$user['area']] ?? ($user['area'] ?? 'Sin área')); 
+                                        ?>
+                                    </span>
+                                </td>
                                 <td>
                                     <span class="badge badge-role <?php 
                                         if ($user['rol'] === 'superadmin') echo 'badge-role-superadmin';
@@ -337,14 +428,18 @@ $allUsers = getAllUsers(100, 0);
                                             <i class="fas fa-edit"></i> Editar
                                         </a>
                                         <?php if ($user['id'] !== getUserId()): ?>
-                                            <button type="button" class="btn btn-danger" 
+                                            <form method="POST" class="d-inline">
+                                                <?php echo csrfField(); ?>
+                                                <input type="hidden" name="action" value="delete_user">
+                                                <input type="hidden" name="user_id" value="<?php echo (int)$user['id']; ?>">
+                                            <button type="submit" class="btn btn-danger" 
                                                     data-swal-confirm="¿Seguro que quieres eliminar este usuario? Se perderá toda su información."
                                                     data-swal-title="Eliminar usuario"
                                                     data-swal-confirm-text="Sí, eliminar"
-                                                    data-swal-href="<?php echo BASE_URL; ?>/admin/crear_usuario.php?delete=<?php echo (int)$user['id']; ?>"
                                                     title="Eliminar usuario">
                                                 <i class="fas fa-trash"></i> Eliminar
                                             </button>
+                                            </form>
                                         <?php else: ?>
                                             <button type="button" class="btn btn-secondary" disabled title="No puedes eliminar tu propia cuenta">
                                                 <i class="fas fa-trash"></i> Eliminar
@@ -371,20 +466,6 @@ $allUsers = getAllUsers(100, 0);
 document.addEventListener('DOMContentLoaded', function () {
     const passwordInput = document.getElementById('password');
     const alertBox = document.getElementById('password-alert-box');
-
-    // Alternar visibilidad de contraseñas
-    document.querySelectorAll('.toggle-password-icon').forEach(function (icon) {
-        icon.addEventListener('click', function () {
-            const targetId = this.getAttribute('data-target');
-            const targetInput = document.getElementById(targetId);
-            if (targetInput) {
-                const isPassword = targetInput.type === 'password';
-                targetInput.type = isPassword ? 'text' : 'password';
-                this.classList.toggle('fa-eye', !isPassword);
-                this.classList.toggle('fa-eye-slash', isPassword);
-            }
-        });
-    });
 
     // Validación y alerta de contraseña
     if (passwordInput && alertBox) {
