@@ -164,21 +164,11 @@ MAIL_SMTP_AUTH=true
 
 Si usas Gmail, normalmente necesitas una contraseña de aplicación en lugar de tu contraseña habitual.
 
-### Probar la configuración
+### Validar la configuración
 
-Desde la raíz del proyecto:
-
-```bash
-php tools/test_mail.php tucorreo@ejemplo.com
-```
-
-Si lo prefieres por navegador:
-
-```text
-http://localhost/proyecto_ayuda_app/tools/test_mail.php?to=tucorreo@ejemplo.com
-```
-
-Si el envío falla, revisa que el host SMTP, el puerto y las credenciales sean correctos.
+Realiza una creación de ticket de prueba con un usuario autorizado y revisa
+los registros de correo del servidor. Si el envío falla, revisa que el host
+SMTP, el puerto y las credenciales sean correctos.
 
 ---
 
@@ -207,7 +197,8 @@ proyecto_ayuda_app/
 ├── includes/
 │   ├── header.php            # Navbar Bootstrap
 │   ├── footer.php            # Footer
-│   └── functions.php         # Funciones reutilizables
+│   ├── functions.php         # Fachada de compatibilidad
+│   └── mail_helper.php       # Fachada de correo legacy
 │
 ├── auth/
 │   ├── login.php             # Página de login
@@ -239,8 +230,14 @@ proyecto_ayuda_app/
 │   └── procesar_correos.php   # Procesa la cola de correos pendientes
 │
 ├── tools/
-│   ├── test_db.php            # Prueba de conexión a BD
-│   └── test_mail.php          # Prueba de envío de correo
+│   └── dev/
+│       └── test_db.php        # Prueba local de conexión a BD
+│
+├── src/
+│   ├── Database/              # Conexión PDO
+│   ├── Repositories/          # Acceso a datos
+│   ├── Services/              # Lógica de negocio
+│   └── Support/               # Compatibilidad y soporte interno
 │
 ├── composer.json              # Dependencia PHPMailer
 ├── vendor/                    # Dependencias instaladas por Composer
